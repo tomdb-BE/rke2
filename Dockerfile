@@ -67,6 +67,7 @@ RUN GO111MODULE=off GOBIN=/usr/local/bin go get github.com/go-delve/delve/cmd/dl
 RUN echo 'alias abort="echo -e '\''q\ny\n'\'' | dlv connect :2345"' >> /root/.bashrc
 ENV PATH=/var/lib/rancher/rke2/bin:$PATH
 ENV KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+ENV ETCD_UNSUPPORTED_ARCH=arm64
 VOLUME /var/lib/rancher/rke2
 # This makes it so we can run and debug k3s too
 VOLUME /var/lib/rancher/k3s
@@ -112,11 +113,10 @@ RUN go-build-static-k8s.sh -o bin/kubeadm                  ./cmd/kubeadm
 RUN go-build-static-k8s.sh -o bin/kubectl                  ./cmd/kubectl
 RUN go-build-static-k8s.sh -o bin/kubelet                  ./cmd/kubelet
 RUN go-assert-static.sh bin/*
-RUN go-assert-boring.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
-FROM registry.access.redhat.com/ubi7/ubi-minimal:latest AS kubernetes
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest AS kubernetes
 RUN microdnf update -y           && \
     microdnf install -y iptables && \
     rm -rf /var/cache/yum
@@ -190,6 +190,8 @@ COPY build/images/rke2-images.tar /var/lib/rancher/rke2/agent/images/
 COPY build/images.txt /images.txt
 # use rke2 bundled binaries
 ENV PATH=/var/lib/rancher/rke2/bin:$PATH
+# for etcd arm64
+ENV ETCD_UNSUPPORTED_ARCH=arm64
 # for kubectl
 ENV KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 # for crictl
