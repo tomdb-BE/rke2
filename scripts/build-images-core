@@ -1,0 +1,84 @@
+set -ex
+
+cd $(dirname $0)/..
+
+source ./scripts/version.sh
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${ETCD_VERSION} \
+    --tag ${REPO}/hardened-etcd:${ETCD_VERSION} \
+    --tag ${REPO}/hardened-etcd:${ETCD_VERSION}-${GOARCH} \
+    --target etcd \
+    .
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${COREDNS_VERSION} \
+    --tag ${REPO}/hardened-coredns:${COREDNS_VERSION} \
+    --tag ${REPO}/hardened-coredns:${COREDNS_VERSION}-${GOARCH} \
+    --target coredns \
+    .
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${METRICS_SERVER_VERSION} \
+    --tag ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION} \
+    --tag ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${GOARCH} \
+    --target metrics-server \
+    .
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${KUBE_PROXY_VERSION} \
+    --tag ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION} \
+    --tag ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}-${GOARCH} \
+    --target kube-proxy \
+    .
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${FLANNEL_VERSION} \
+    --build-arg K3S_ROOT_VERSION=${K3S_ROOT_VERSION} \
+    --tag ${REPO}/hardened-flannel:${FLANNEL_VERSION} \
+    --tag ${REPO}/hardened-flannel:${FLANNEL_VERSION}-${GOARCH} \
+    --target flannel \
+    .
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg ARG=${GOARCH} \
+    --build-arg TAG=${CALICO_VERSION} \
+    --build-arg CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} \
+    --build-arg CALICO_BPFTOOL_VERSION=${CALICO_BPFTOOL_VERSION} \
+    --build-arg CALICO_BIRD_VERSION=${CALICO_BIRD_VERSION} \
+    --build-arg K3S_ROOT_VERSION=${K3S_ROOT_VERSION} \
+    --tag ${REPO}/hardened-calico:${CALICO_VERSION} \
+    --tag ${REPO}/hardened-calico:${CALICO_VERSION}-${GOARCH} \
+    --target calico \
+    .
+
+mkdir -p build/images
+docker image save \
+    --output build/images/${PROG}-etcd.tar \
+    ${REPO}/hardened-etcd:${ETCD_VERSION} \
+    ${REPO}/hardened-etcd:${ETCD_VERSION}-${GOARCH}
+docker image save \
+    --output build/images/${PROG}-coredns.tar \
+    ${REPO}/hardened-coredns:${COREDNS_VERSION} \
+    ${REPO}/hardened-coredns:${COREDNS_VERSION}-${GOARCH}
+docker image save \
+    --output build/images/${PROG}-k8s-metrics-server.tar \
+    ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION} \
+    ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${GOARCH}
+docker image save \
+    --output build/images/${PROG}-kube-proxy.tar \
+    ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION} \
+    ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}-${GOARCH}
+docker image save \
+    --output build/images/${PROG}-flannel.tar \
+    ${REPO}/hardened-flannel:${FLANNEL_VERSION} \
+    ${REPO}/hardened-flannel:${FLANNEL_VERSION}-${GOARCH}
+docker image save \
+    --output build/images/${PROG}-calico.tar \
+    ${REPO}/hardened-calico:${CALICO_VERSION} \
+    ${REPO}/hardened-calico:${CALICO_VERSION}-${GOARCH}

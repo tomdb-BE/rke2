@@ -7,56 +7,59 @@ source ./scripts/version.sh
 
 ./scripts/build-image-kubernetes
 ./scripts/build-image-runtime
+./scripts/build-images-core
 
 awk '{print $1}' << EOF > build/images-core.txt
     ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
     ${REGISTRY}/${REPO}/hardened-kubernetes:${DOCKERIZED_VERSION}
+    ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}-${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
-    ${REGISTRY}/rancher/hardened-coredns:v1.6.9-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/rancher/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/rancher/hardened-k8s-metrics-server:v0.3.6-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/rancher/hardened-kube-proxy:${KUBERNETES_VERSION}-build20210413
-    ${REGISTRY}/rancher/klipper-helm:v0.4.3-build20210225
+    ${REGISTRY}/rancher/klipper-helm:${HELM_VERSION}
     ${REGISTRY}/rancher/pause:${PAUSE_VERSION}
-    ${REGISTRY}/rancher/nginx-ingress-controller-defaultbackend:1.5-rancher1
-    ${REGISTRY}/rancher/nginx-ingress-controller:nginx-0.30.0-rancher1
+    ${REGISTRY}/rancher/nginx-ingress-controller-defaultbackend:${NGINX_INGRESS_DEFAULT_BACKEND_VERSION}
+    ${REGISTRY}/rancher/nginx-ingress-controller:${NGINX_INGRESS_VERSION}
 EOF
 
-xargs -n1 -t docker image pull --quiet << EOF > build/images-canal.txt
-    ${REGISTRY}/rancher/hardened-calico:v3.13.3-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/rancher/hardened-flannel:v0.13.0-rancher1-${IMAGE_BUILD_VERSION}
+awk '{print $1}' << EOF > build/images-canal.txt
+    ${REGISTRY}/${REPO}/hardened-calico:${CALICO_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL-VERSION}-${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
-    ${REGISTRY}/rancher/mirrored-cilium-cilium:v1.9.4
-    ${REGISTRY}/rancher/mirrored-cilium-operator-aws:v1.9.4
-    ${REGISTRY}/rancher/mirrored-cilium-operator-azure:v1.9.4
-    ${REGISTRY}/rancher/mirrored-cilium-operator-generic:v1.9.4
-    ${REGISTRY}/rancher/mirrored-cilium-startup-script:62bfbe88c17778aad7bef9fa57ff9e2d4a9ba0d8
+    ${REGISTRY}/cilium/cilium:${CILIUM_VERSION}
+    ${REGISTRY}/cilium/operator-aws:${CILIUM_VERSION}
+    ${REGISTRY}/cilium/operator-azure:${CILIUM_VERSION}
+    ${REGISTRY}/cilium/operator-generic:${CILIUM_VERSION}
+    ${REGISTRY}/cilium/startup-script:${CILIUM_STARTUP_SCRIPT_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
-    ${REGISTRY}/rancher/mirrored-calico-operator:v1.15.1
-    ${REGISTRY}/rancher/mirrored-calico-ctl:v3.18.1
-    ${REGISTRY}/calico/kube-controllers:v3.18.1
-    ${REGISTRY}/calico/typha:v3.18.1
-    ${REGISTRY}/calico/node:v3.18.1
-    ${REGISTRY}/calico/pod2daemon-flexvol:v3.18.1
-    ${REGISTRY}/calico/cni:v3.18.1
+    ${REGISTRY}/calico/operator:${CALICO_VERSION}
+    ${REGISTRY}/calico/ctl:${CALICO_VERSION}
+    ${REGISTRY}/calico/kube-controllers:${CALICO_VERSION}
+    ${REGISTRY}/calico/typha:${CALICO_VERSION}
+    ${REGISTRY}/calico/node:${CALICO_VERSION}
+    ${REGISTRY}/calico/pod2daemon-flexvol:${CALICO_VERSION}
+    ${REGISTRY}/calico/cni:${CALICO_VERSION}
 EOF
 
-xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
-    ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:v1.2.1
-    ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:v2.1.0
-    ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-syncer:v2.1.0
-    ${REGISTRY}/rancher/mirrored-k8scsi-csi-attacher:v3.0.0
-    ${REGISTRY}/rancher/mirrored-k8scsi-csi-node-driver-registrar:v2.0.1
-    ${REGISTRY}/rancher/mirrored-k8scsi-csi-provisioner:v2.0.0
-    ${REGISTRY}/rancher/mirrored-k8scsi-csi-resizer:v1.0.0
-    ${REGISTRY}/rancher/mirrored-k8scsi-livenessprobe:v2.1.0
-EOF
+if [[ $GOARCH == "amd64" ]]; then
+    xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_RELEASE_MANAGER_VERSION}
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_RELEASE_DRIVER_VERSION}
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-syncer:${VSPHERE_CSI_RELEASE_SYNCER_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-csi-attacher:${K8SCSI_CSI_ATTACHER_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-csi-node-driver-registrar:${K8SCSI_CSI_NODE_DRIVER_REGISTRAR_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-csi-provisioner:${K8SCSI_CSI_PROVISIONER_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-csi-resizer:${K8SCSI_CSI_RESIZER_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-livenessprobe:${K8SCSI_CSI_LIVENESSPROBE_VERSION}
+    EOF
+fi
 
 # Continue to provide a legacy airgap archive set with the default CNI images
 cat build/images-core.txt build/images-canal.txt > build/images.txt
