@@ -1,4 +1,5 @@
 ARG KUBERNETES_VERSION=dev
+ARG KUBERNETES_IMAGE=centos:7
 # Build environment
 FROM rancher/hardened-build-base:v1.16.2b7 AS build
 RUN set -x \
@@ -117,7 +118,7 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
-FROM centos:7 AS kubernetes
+FROM ${KUBERNETES_IMAGE} AS kubernetes
 RUN yum update -y           && \
     yum install -y iptables && \
     rm -rf /var/cache/yum
@@ -142,13 +143,118 @@ RUN CHART_VERSION="1.0.000"                   CHART_FILE=/charts/rancher-vsphere
 RUN CHART_VERSION="2.1.000"                   CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
 RUN rm -vf /charts/*.sh /charts/*.md
 
+#build containerd
+FROM build AS containerd-builder
+ARG PROTOC_VERSION=3.15.8
+# setup required packages
+RUN set -x \
+ && apk --no-cache add \
+    btrfs-progs-dev \
+    btrfs-progs-static \
+    file \
+    gcc \
+    git \
+    libselinux-dev \
+    libseccomp-dev \
+    libseccomp-static \
+    make \
+    mercurial \
+    subversion \
+    unzip
+RUN archurl=x86_64; if [[ $ARCH == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${archurl}.zip
+RUN archurl=x86_64; if [[ $ARCH == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-${archurl}.zip -d /usr
+# setup containerd build
+ARG SRC="github.com/rancher/containerd"
+ARG PKG="github.com/containerd/containerd"
+ARG CONTAINERD_VERSION="v1.4.3-k3s3"
+RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
+WORKDIR $GOPATH/src/${PKG}
+RUN git fetch --all --tags --prune
+RUN git checkout tags/${CONTAINERD_VERSION} -b ${CONTAINERD_VERSION}
+ENV GO_BUILDTAGS="apparmor,seccomp,selinux,static_build,netgo,osusergo"
+ENV GO_BUILDFLAGS="-gcflags=-trimpath=${GOPATH}/src -tags=${GO_BUILDTAGS}"
+RUN export GO_LDFLAGS="-linkmode=external \
+    -X ${PKG}/version.Version=${CONTAINERD_VERSION} \
+    -X ${PKG}/version.Package=${SRC} \
+    -X ${PKG}/version.Revision=$(git rev-parse HEAD) \
+    " \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/ctr                      ./cmd/ctr \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/containerd               ./cmd/containerd \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/containerd-stress        ./cmd/containerd-stress \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/containerd-shim          ./cmd/containerd-shim \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/containerd-shim-runc-v1  ./cmd/containerd-shim-runc-v1 \
+ && go-build-static.sh ${GO_BUILDFLAGS} -o bin/containerd-shim-runc-v2  ./cmd/containerd-shim-runc-v2
+RUN go-assert-static.sh bin/*
+RUN install -s bin/* /usr/local/bin
+RUN containerd --version
+FROM ${KUBERNETES_IMAGE} AS containerd
+RUN yum update -y && \
+    rm -rf /var/cache/yum
+COPY --from=containerd-builder /usr/local/bin/ /usr/local/bin/
+
+#Build crictl
+FROM build AS crictl-builder
+# setup required packages
+RUN set -x \
+ && apk --no-cache add \
+    file \
+    gcc \
+    git \
+    libselinux-dev \
+    libseccomp-dev \
+    make
+# setup the build
+ARG PKG="github.com/kubernetes-sigs/cri-tools"
+ARG SRC="github.com/kubernetes-sigs/cri-tools"
+ARG CRICTL_VERSION="v1.19.0"
+RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
+WORKDIR $GOPATH/src/${PKG}
+RUN git fetch --all --tags --prune
+RUN git checkout tags/${CRICTL_VERSION} -b ${CRICTL_VERSION}
+ENV GO_LDFLAGS="-linkmode=external -X ${PKG}/pkg/version.Version=${CRICTL_VERSION}"
+RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/crictl ./cmd/crictl
+RUN go-assert-static.sh bin/*
+RUN install -s bin/* /usr/local/bin
+RUN crictl --version
+FROM ${KUBERNETES_IMAGE} AS crictl
+RUN yum update -y && \
+    rm -rf /var/cache/yum
+COPY --from=crictl-builder /usr/local/bin/ /usr/local/bin/
+
+#Build runc
+FROM build AS runc-builder
+# setup required packages
+RUN set -x \
+ && apk --no-cache add \
+    file \
+    gcc \
+    git \
+    libselinux-dev \
+    libseccomp-dev \
+    libseccomp-static \
+    make
+# setup the build
+ARG PKG="github.com/opencontainers/runc"
+ARG SRC="github.com/opencontainers/runc"
+ARG RUNC_VERSION="v1.0.0-rc93"
+RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
+WORKDIR $GOPATH/src/${PKG}
+RUN git fetch --all --tags --prune
+RUN git checkout tags/${RUNC_VERSION} -b ${RUNC_VERSION}
+RUN BUILDTAGS='seccomp selinux apparmor' make static
+RUN go-assert-static.sh runc
+RUN install -s runc /usr/local/bin
+RUN runc --version
+FROM ${KUBERNETES_IMAGE} AS runc
+RUN yum update -y && \
+    rm -rf /var/cache/yum
+COPY --from=runc-builder /usr/local/bin/ /usr/local/bin/
+
 # rke-runtime image
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
 FROM rancher/k3s:v1.21.0-k3s1 AS k3s
-FROM rancher/hardened-containerd:v1.4.4-k3s1-build20210316 AS containerd
-FROM rancher/hardened-crictl:v1.19.0-build20210223 AS crictl
 FROM rancher/hardened-runc:v1.0.0-rc93-build20210223 AS runc
 
 FROM scratch AS runtime-collect
