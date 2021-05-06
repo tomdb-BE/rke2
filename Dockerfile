@@ -1,38 +1,71 @@
 ARG KUBERNETES_VERSION=dev
-ARG KUBERNETES_IMAGE=centos:7
-# Build environment
-FROM rancher/hardened-build-base:v1.16.2b7 AS build
-RUN set -x \
- && apk --no-cache add \
+ARG BASE_IMAGE=alpine
+ARG GOLANG_VERSION=1.16.2
+
+FROM library/golang:${GOLANG_VERSION}-alpine AS goboring
+ARG GOBORING_BUILD=5
+RUN apk --no-cache add \
     bash \
+    g++
+ADD https://go-boringcrypto.storage.googleapis.com/go${GOLANG_VERSION}b${GOBORING_BUILD}.src.tar.gz /usr/local/boring.tgz
+WORKDIR /usr/local/boring
+RUN tar xzf ../boring.tgz
+WORKDIR /usr/local/boring/go/src
+RUN ./make.bash
+COPY scripts/ /usr/local/boring/go/bin/
+
+FROM library/golang:${GOLANG_VERSION}-alpine AS trivy
+ARG TRIVY_VERSION=0.16.0
+RUN set -ex; \
+    if [ "$(go env GOARCH)" = "arm64" ]; then \
+        wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-ARM64.tar.gz"; \
+        tar -xzf trivy_${TRIVY_VERSION}_Linux-ARM64.tar.gz;  \
+        mv trivy /usr/local/bin;                             \
+    else                                                     \
+        wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"; \
+        tar -xzf trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz;  \
+        mv trivy /usr/local/bin;                             \
+    fi
+
+FROM library/golang:${GOLANG_VERSION}-alpine AS build
+RUN apk --no-cache add \
+    bash \
+    binutils-gold \
+    coreutils \
     curl \
+    docker \
     file \
+    g++ \
+    gcc \
     git \
     libseccomp-dev \
-    rsync \
+    make \
+    mercurial \
     py-pip \
-    binutils-gold
+    rsync \
+    subversion \
+    binutils-gold \
+    wget
+RUN rm -fr /usr/local/go/*
+COPY --from=goboring /usr/local/boring/go/ /usr/local/go/
+COPY --from=trivy /usr/local/bin/ /usr/bin/
+RUN set -x \
+ && chmod -v +x /usr/local/go/bin/go-*.sh \
+ && go version \
+ && trivy --download-db-only --quiet
 
 # Dapper/Drone/CI environment
 FROM build AS dapper
-ENV DAPPER_ENV GODEBUG REPO TAG DRONE_TAG PAT_USERNAME PAT_TOKEN KUBERNETES_VERSION DOCKER_BUILDKIT DRONE_BUILD_EVENT IMAGE_NAME GCLOUD_AUTH ENABLE_REGISTRY
+ENV DAPPER_ENV GODEBUG REPO TAG DRONE_TAG PAT_USERNAME PAT_TOKEN KUBERNETES_VERSION DOCKER_BUILDKIT DRONE_BUILD_EVENT IMAGE_NAME GCLOUD_AUTH ENABLE_REGISTRY TRIVY_VERSION
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
 ENV DAPPER_OUTPUT ./dist ./bin ./build
 ENV DAPPER_DOCKER_SOCKET true
 ENV DAPPER_TARGET dapper
 ENV DAPPER_RUN_ARGS "--privileged --network host -v /tmp:/tmp -v rke2-pkg:/go/pkg -v rke2-cache:/root/.cache/go-build -v trivy-cache:/root/.cache/trivy"
-RUN if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then \
-        VERSION=0.19.0 OS=linux && \
-        curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
-        tar -xzf - -C /usr/local/bin; \
-   fi
-RUN curl -sL https://storage.googleapis.com/kubernetes-release/release/$( \
-            curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt \
-        )/bin/linux/${ARCH}/kubectl -o /usr/local/bin/kubectl && \
+RUN curl -sL https://storage.googleapis.com/kubernetes-release/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/kubectl -o /usr/local/bin/kubectl && \
     chmod a+x /usr/local/bin/kubectl; \
     pip install codespell
-
 RUN curl -sL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.27.0
 RUN set -x \
  && apk --no-cache add \
@@ -40,16 +73,6 @@ RUN set -x \
     zstd \
     jq \
     python2
-RUN VERSION=0.16.0 && \
-    if [ "${ARCH}" = "arm64" ]; then \
-    wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-ARM64.tar.gz && \
-    tar -zxvf trivy_${VERSION}_Linux-ARM64.tar.gz && \
-    mv trivy /usr/local/bin; \
-    else \
-    wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz && \
-    tar -zxvf trivy_${VERSION}_Linux-64bit.tar.gz && \
-    mv trivy /usr/local/bin; \
-    fi
 WORKDIR /source
 # End Dapper stuff
 
@@ -118,10 +141,8 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
-FROM ${KUBERNETES_IMAGE} AS kubernetes
-RUN yum update -y           && \
-    yum install -y iptables && \
-    rm -rf /var/cache/yum
+FROM ${BASE_IMAGE} AS kubernetes
+RUN apk --update --no-cache add iptables
 COPY --from=build-k8s \
     /usr/local/bin/ \
     /usr/local/bin/
@@ -187,9 +208,7 @@ RUN export GO_LDFLAGS="-linkmode=external \
 RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN containerd --version
-FROM ${KUBERNETES_IMAGE} AS containerd
-RUN yum update -y && \
-    rm -rf /var/cache/yum
+FROM ${BASE_IMAGE} AS containerd
 COPY --from=containerd-builder /usr/local/bin/ /usr/local/bin/
 
 #Build crictl
@@ -216,9 +235,7 @@ RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/crictl ./cmd/cric
 RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN crictl --version
-FROM ${KUBERNETES_IMAGE} AS crictl
-RUN yum update -y && \
-    rm -rf /var/cache/yum
+FROM ${BASE_IMAGE} AS crictl
 COPY --from=crictl-builder /usr/local/bin/ /usr/local/bin/
 
 #Build runc
@@ -245,9 +262,7 @@ RUN BUILDTAGS='seccomp selinux apparmor' make static
 RUN go-assert-static.sh runc
 RUN install -s runc /usr/local/bin
 RUN runc --version
-FROM ${KUBERNETES_IMAGE} AS runc
-RUN yum update -y && \
-    rm -rf /var/cache/yum
+FROM ${BASE_IMAGE} AS runc
 COPY --from=runc-builder /usr/local/bin/ /usr/local/bin/
 
 # rke-runtime image
