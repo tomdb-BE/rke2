@@ -117,9 +117,9 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest AS kubernetes
-RUN microdnf update -y           && \
-    microdnf install -y iptables && \
+FROM centos:7 AS kubernetes
+RUN yum update -y           && \
+    yum install -y iptables && \
     rm -rf /var/cache/yum
 COPY --from=build-k8s \
     /usr/local/bin/ \
