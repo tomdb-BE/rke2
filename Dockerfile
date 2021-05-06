@@ -386,9 +386,9 @@ FROM base AS kube-proxy
 ARG ARCH
 ARG TAG
 ARG K3S_ROOT_VERSION
-RUN apk --no-cache add
-    conntrack-tools \
-    which        && \
+RUN apk --no-cache add \
+    conntrack-tools    \
+    which
 COPY --from=kube-proxy-builder /opt/k3s-root/aux/ /usr/sbin/
 COPY --from=kube-proxy-builder /opt/k3s-root/bin/ /bin/
 COPY --from=kube-proxy-builder /usr/local/bin/ /usr/local/bin/
