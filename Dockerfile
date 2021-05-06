@@ -9,7 +9,8 @@ RUN set -x \
     git \
     libseccomp-dev \
     rsync \
-    py-pip
+    py-pip \
+    binutils-gold
 
 # Dapper/Drone/CI environment
 FROM build AS dapper
