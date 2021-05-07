@@ -246,7 +246,7 @@ ARG TAG="v1.0.0-rc93"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${RUNC_VERSION} -b ${RUNC_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN BUILDTAGS='seccomp selinux apparmor' make static
 RUN go-assert-static.sh runc
 RUN install -s runc /usr/local/bin
@@ -325,7 +325,7 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 RUN etcd --version
-FROM base AS runc
+FROM base AS etcd
 ARG ARCH
 ARG TAG
 ENV ETCD_UNSUPPORTED_ARCH=arm64
