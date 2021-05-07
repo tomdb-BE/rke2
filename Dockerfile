@@ -234,8 +234,6 @@ COPY --from=crictl-builder /usr/local/bin/ /usr/local/bin/
 
 #Build runc
 FROM build AS runc-builder
-# setup required packages
-RUN set -x
 # setup the build
 ARG ARCH
 ARG PKG="github.com/opencontainers/runc"
