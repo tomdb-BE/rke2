@@ -31,7 +31,7 @@ REVISION=$(git rev-parse HEAD)$(if ! git diff --no-ext-diff --quiet --exit-code;
 PLATFORM=${GOOS}-${GOARCH}
 RELEASE=${PROG}.${PLATFORM}
 
-GOLANG_VERSION=1.16.4
+GOLANG_VERSION=1.16.3
 GOBORING_BUILD=7
 TRIVY_VERSION=0.17.2
 # hardcode versions unless set specifically
