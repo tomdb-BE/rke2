@@ -215,8 +215,6 @@ COPY --from=containerd-builder /usr/local/bin/ /usr/local/bin/
 #Build crictl
 FROM build AS crictl-builder
 # setup required packages
-RUN set -x
-# setup the build
 ARG PKG="github.com/kubernetes-sigs/cri-tools"
 ARG SRC="github.com/kubernetes-sigs/cri-tools"
 ARG TAG="v1.19.0"
@@ -355,7 +353,6 @@ ENTRYPOINT ["/coredns"]
 
 #Build kube-proxy
 FROM build AS kube-proxy-builder
-RUN set -x
 # setup the build
 ARG ARCH
 ARG K3S_ROOT_VERSION="v0.8.1"
