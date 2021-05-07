@@ -179,8 +179,10 @@ RUN rm -vf /charts/*.sh /charts/*.md
 FROM build AS containerd-builder
 # setup required packages
 RUN set -x
-RUN archurl=x86_64; if [[ $ARCH == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${archurl}.zip
-RUN archurl=x86_64; if [[ $ARCH == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-${archurl}.zip -d /usr
+ARG ARCH
+ARG PROTOC_VERSION
+RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${archurl}.zip
+RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-${archurl}.zip -d /usr
 # setup containerd build
 ARG SRC="github.com/rancher/containerd"
 ARG PKG="github.com/containerd/containerd"
