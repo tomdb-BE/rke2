@@ -6,6 +6,31 @@ cd $(dirname $0)/..
 source ./scripts/version.sh
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg TAG=${CONTAINERD_VERSION} \
+    --build-arg ARCH=${GOARCH} \
+    --build-arg PROTOC_VERSION=${PROTOC_VERSION} \
+    --tag ${REPO}/hardened-containerd:${CONTAINERD_VERSION} \
+    --tag ${REPO}/hardened-containerd:${CONTAINERD_VERSION}-${GOARCH} \
+    --target containerd \
+.
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg TAG=${RUNC_VERSION} \
+    --build-arg ARCH=${GOARCH} \
+    --tag ${REPO}/hardened-runc:${RUNC_VERSION} \
+    --tag ${REPO}/hardened-runc:${RUNC_VERSION}-${GOARCH} \
+    --target runc \
+.
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
+    --build-arg TAG=${CRITCTL_VERSION} \
+    --build-arg ARCH=${GOARCH} \
+    --tag ${REPO}/hardened-critctl:${CRICTL_VERSION} \
+    --tag ${REPO}/hardened-critctl:${CRICTL_VERSION}-${GOARCH} \
+    --target critctl \
+.
+
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg TAG=${VERSION} \
     --build-arg ARCH=${GOARCH} \
     --build-arg KUBERNETES_VERSION=${KUBERNETES_VERSION} \
