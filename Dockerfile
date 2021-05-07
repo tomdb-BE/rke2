@@ -2,6 +2,7 @@ ARG KUBERNETES_VERSION=dev
 ARG K3S_VERSION=${KUBERNETES_VERSION}-k3s1
 ARG GOLANG_VERSION=1.16.3
 ARG BASE_IMAGE=alpine
+ARG CALICO_BIRD_VERSION=v0.3.3
 
 FROM ${BASE_IMAGE} AS base
 RUN apk --update --no-cache add ca-certificates
@@ -16,7 +17,7 @@ WORKDIR /usr/local/boring
 RUN tar xzf ../boring.tgz
 WORKDIR /usr/local/boring/go/src
 RUN /bin/bash -c /usr/local/boring/go/src/make.bash
-COPY scripts/ /usr/local/boring/go/bin/
+COPY scripts-boring/ /usr/local/boring/go/bin/
 
 FROM library/golang:${GOLANG_VERSION}-alpine AS trivy
 ARG TRIVY_VERSION=0.17.2
@@ -60,7 +61,7 @@ RUN rm -fr /usr/local/go/*
 COPY --from=goboring /usr/local/boring/go/ /usr/local/go/
 COPY --from=trivy /usr/local/bin/ /usr/bin/
 RUN set -x \
- && chmod -v +x /usr/local/go/bin/*.sh \
+ && chmod -v +x /usr/local/go/bin/go*.sh \
  && go version \
  && trivy --download-db-only --quiet
 
@@ -140,14 +141,14 @@ RUN echo 'go-build-static.sh -gcflags=-trimpath=${GOPATH}/src/kubernetes -mod=ve
 RUN chmod -v +x /usr/local/go/bin/go-*.sh
 
 FROM build-k8s-codegen AS build-k8s
-RUN go-build-static-k8s.sh -o bin/kube-apiserver           ./cmd/kube-apiserver
-RUN go-build-static-k8s.sh -o bin/kube-controller-manager  ./cmd/kube-controller-manager
-RUN go-build-static-k8s.sh -o bin/kube-scheduler           ./cmd/kube-scheduler
-RUN go-build-static-k8s.sh -o bin/kube-proxy               ./cmd/kube-proxy
-RUN go-build-static-k8s.sh -o bin/kubeadm                  ./cmd/kubeadm
-RUN go-build-static-k8s.sh -o bin/kubectl                  ./cmd/kubectl
-RUN go-build-static-k8s.sh -o bin/kubelet                  ./cmd/kubelet
-RUN go-assert-static.sh bin/*
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-apiserver           ./cmd/kube-apiserver
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-controller-manager  ./cmd/kube-controller-manager
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-scheduler           ./cmd/kube-scheduler
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-proxy               ./cmd/kube-proxy
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubeadm                  ./cmd/kubeadm
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubectl                  ./cmd/kubectl
+RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubelet                  ./cmd/kubelet
+RUN /usr/local/go/bin/go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
