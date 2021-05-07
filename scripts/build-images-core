@@ -6,7 +6,7 @@ source ./scripts/version.sh
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${ETCD_VERSION} \
+    --build-arg ETCD_VERSION=${ETCD_VERSION} \
     --tag ${REPO}/hardened-etcd:${ETCD_VERSION} \
     --tag ${REPO}/hardened-etcd:${ETCD_VERSION}-${GOARCH} \
     --target etcd \
@@ -14,7 +14,7 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${COREDNS_VERSION} \
+    --build-arg COREDNS_VERSION=${COREDNS_VERSION} \
     --tag ${REPO}/hardened-coredns:${COREDNS_VERSION} \
     --tag ${REPO}/hardened-coredns:${COREDNS_VERSION}-${GOARCH} \
     --target coredns \
@@ -22,7 +22,7 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${METRICS_SERVER_VERSION} \
+    --build-arg METRICS_SERVER_VERSION=${METRICS_SERVER_VERSION} \
     --tag ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION} \
     --tag ${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${GOARCH} \
     --target metrics-server \
@@ -30,7 +30,7 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${KUBE_PROXY_VERSION} \
+    --build-arg KUBE_PROXY_VERSION=${KUBE_PROXY_VERSION} \
     --tag ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION} \
     --tag ${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}-${GOARCH} \
     --target kube-proxy \
@@ -38,7 +38,7 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${FLANNEL_VERSION} \
+    --build-arg FLANNEL_VERSION=${FLANNEL_VERSION} \
     --build-arg K3S_ROOT_VERSION=${K3S_ROOT_VERSION} \
     --tag ${REPO}/hardened-flannel:${FLANNEL_VERSION} \
     --tag ${REPO}/hardened-flannel:${FLANNEL_VERSION}-${GOARCH} \
@@ -47,7 +47,7 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARG=${GOARCH} \
-    --build-arg TAG=${CALICO_VERSION} \
+    --build-arg CALICO_VERSION=${CALICO_VERSION} \
     --build-arg CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} \
     --build-arg CALICO_BPFTOOL_VERSION=${CALICO_BPFTOOL_VERSION} \
     --build-arg CALICO_BIRD_VERSION=${CALICO_BIRD_VERSION} \
