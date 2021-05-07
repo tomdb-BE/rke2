@@ -1,13 +1,13 @@
 ARG KUBERNETES_VERSION=dev
 ARG K3S_VERSION=${KUBERNETES_VERSION}-k3s1
-ARG GOLANG_VERSION=1.16.2
+ARG GOLANG_VERSION=1.16.4
 ARG BASE_IMAGE=alpine
 
 FROM ${BASE_IMAGE} AS base
 RUN apk --update --no-cache add ca-certificates
 
 FROM library/golang:${GOLANG_VERSION}-alpine AS goboring
-ARG GOBORING_BUILD=5
+ARG GOBORING_BUILD=7
 RUN apk --no-cache add \
     bash \
     g++
@@ -19,7 +19,7 @@ RUN ./make.bash
 COPY scripts/ /usr/local/boring/go/bin/
 
 FROM library/golang:${GOLANG_VERSION}-alpine AS trivy
-ARG TRIVY_VERSION=0.16.0
+ARG TRIVY_VERSION=0.17.2
 RUN set -ex; \
     if [ "$(go env GOARCH)" = "arm64" ]; then \
         wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-ARM64.tar.gz"; \

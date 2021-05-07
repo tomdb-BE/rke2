@@ -30,6 +30,10 @@ COMMIT=$DRONE_COMMIT
 REVISION=$(git rev-parse HEAD)$(if ! git diff --no-ext-diff --quiet --exit-code; then echo .dirty; fi)
 PLATFORM=${GOOS}-${GOARCH}
 RELEASE=${PROG}.${PLATFORM}
+
+GOLANG_VERSION=1.16.4
+GOBORING_BUILD=7
+TRIVY_VERSION=0.17.2
 # hardcode versions unless set specifically
 KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.21.0}
 KUBE_PROXY_VERSION=${KUBERNETES_VERSION:$KUBERNETES_VERSION}
