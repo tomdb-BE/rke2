@@ -141,14 +141,14 @@ RUN echo 'go-build-static.sh -gcflags=-trimpath=${GOPATH}/src/kubernetes -mod=ve
 RUN chmod -v +x /usr/local/go/bin/go-*.sh
 
 FROM build-k8s-codegen AS build-k8s
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-apiserver           ./cmd/kube-apiserver
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-controller-manager  ./cmd/kube-controller-manager
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-scheduler           ./cmd/kube-scheduler
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kube-proxy               ./cmd/kube-proxy
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubeadm                  ./cmd/kubeadm
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubectl                  ./cmd/kubectl
-RUN /usr/local/go/bin/go-build-static-k8s.sh -o bin/kubelet                  ./cmd/kubelet
-RUN /usr/local/go/bin/go-assert-static.sh bin/*
+RUN go-build-static-k8s.sh -o bin/kube-apiserver           ./cmd/kube-apiserver
+RUN go-build-static-k8s.sh -o bin/kube-controller-manager  ./cmd/kube-controller-manager
+RUN go-build-static-k8s.sh -o bin/kube-scheduler           ./cmd/kube-scheduler
+RUN go-build-static-k8s.sh -o bin/kube-proxy               ./cmd/kube-proxy
+RUN go-build-static-k8s.sh -o bin/kubeadm                  ./cmd/kubeadm
+RUN go-build-static-k8s.sh -o bin/kubectl                  ./cmd/kubectl
+RUN go-build-static-k8s.sh -o bin/kubelet                  ./cmd/kubelet
+RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
