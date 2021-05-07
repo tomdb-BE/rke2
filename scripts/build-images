@@ -12,10 +12,10 @@ source ./scripts/version.sh
 awk '{print $1}' << EOF > build/images-core.txt
     ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
     ${REGISTRY}/${REPO}/hardened-kubernetes:${DOCKERIZED_VERSION}
-    ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
@@ -26,8 +26,8 @@ xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
 EOF
 
 awk '{print $1}' << EOF > build/images-canal.txt
-    ${REGISTRY}/${REPO}/hardened-calico:${CALICO_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL-VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-calico:${CALICO_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL-VERSION}${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
