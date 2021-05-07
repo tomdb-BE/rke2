@@ -15,7 +15,7 @@ ADD https://go-boringcrypto.storage.googleapis.com/go${GOLANG_VERSION}b${GOBORIN
 WORKDIR /usr/local/boring
 RUN tar xzf ../boring.tgz
 WORKDIR /usr/local/boring/go/src
-RUN ./make.bash
+RUN /bin/bash -c /usr/local/boring/go/src/make.bash
 COPY scripts/ /usr/local/boring/go/bin/
 
 FROM library/golang:${GOLANG_VERSION}-alpine AS trivy
@@ -60,7 +60,7 @@ RUN rm -fr /usr/local/go/*
 COPY --from=goboring /usr/local/boring/go/ /usr/local/go/
 COPY --from=trivy /usr/local/bin/ /usr/bin/
 RUN set -x \
- && chmod -v +x /usr/local/go/bin/go-*.sh \
+ && chmod -v +x /usr/local/go/bin/*.sh \
  && go version \
  && trivy --download-db-only --quiet
 
