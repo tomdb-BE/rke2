@@ -178,23 +178,23 @@ RUN rm -vf /charts/*.sh /charts/*.md
 #build containerd
 FROM build AS containerd-builder
 # setup required packages
-RUN set -x
 ARG ARCH
 ARG PROTOC_VERSION=3.11.4
-RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${archurl}.zip
-RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-${archurl}.zip -d /usr
+RUN set -x
+RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-$archurl.zip
+RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-$archurl.zip -d /usr
 # setup containerd build
 ARG SRC="github.com/rancher/containerd"
 ARG PKG="github.com/containerd/containerd"
-ARG TAG="v1.4.4-k3s1"
+ARG CONTAINERD_VERSION="v1.4.4-k3s1"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${TAG} -b ${TAG}
+RUN git checkout tags/${CONTAINERD_VERSION} -b ${CONTAINERD_VERSION}
 ENV GO_BUILDTAGS="apparmor,seccomp,selinux,static_build,netgo,osusergo"
 ENV GO_BUILDFLAGS="-gcflags=-trimpath=${GOPATH}/src -tags=${GO_BUILDTAGS}"
 RUN export GO_LDFLAGS="-linkmode=external \
-    -X ${PKG}/version.Version=${TAG} \
+    -X ${PKG}/version.Version=${CONTAINERD_VERSION} \
     -X ${PKG}/version.Package=${SRC} \
     -X ${PKG}/version.Revision=$(git rev-parse HEAD) \
     " \
@@ -214,14 +214,14 @@ COPY --from=containerd-builder /usr/local/bin/ /usr/local/bin/
 
 #Build crictl
 FROM build AS crictl-builder
-# setup required packages
+# setup the build
 ARG PKG="github.com/kubernetes-sigs/cri-tools"
 ARG SRC="github.com/kubernetes-sigs/cri-tools"
-ARG TAG="v1.19.0"
+ARG CRICTL_VERSION="v1.19.0"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${TAG} -b ${TAG}
+RUN git checkout tags/${CRICTL_VERSION} -b ${CRICTL_VERSION}
 ENV GO_LDFLAGS="-linkmode=external -X ${PKG}/pkg/version.Version=${TAG}"
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/crictl ./cmd/crictl
 RUN go-assert-static.sh bin/*
@@ -238,11 +238,11 @@ FROM build AS runc-builder
 ARG ARCH
 ARG PKG="github.com/opencontainers/runc"
 ARG SRC="github.com/opencontainers/runc"
-ARG TAG="v1.0.0-rc93"
+ARG RUNC_VERSION="v1.0.0-rc93"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${TAG} -b ${TAG}
+RUN git checkout tags/${RUNC_VERSION} -b ${RUNC_VERSION}
 RUN BUILDTAGS='seccomp selinux apparmor' make static
 RUN go-assert-static.sh runc
 RUN install -s runc /usr/local/bin
@@ -307,7 +307,6 @@ FROM build AS etcd-builder
 ARG ARCH
 ARG PKG=go.etcd.io/etcd
 ARG SRC=github.com/rancher/etcd
-ARG TAG="v3.4.13-k3s1"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
@@ -351,6 +350,7 @@ ENTRYPOINT ["/coredns"]
 
 #Build kube-proxy
 FROM build AS kube-proxy-builder
+RUN set -x
 # setup the build
 ARG ARCH
 ARG K3S_ROOT_VERSION="v0.8.1"
