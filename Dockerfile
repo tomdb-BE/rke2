@@ -302,10 +302,8 @@ COPY --from=runtime-collect / /
 
 #Build etcd
 FROM build AS etcd-builder
-ARG ARCH
 ARG PKG=go.etcd.io/etcd
 ARG SRC=github.com/rancher/etcd
-ARG ETCD_VERSION="v3.4.13-k3s1"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
@@ -320,18 +318,14 @@ RUN install -s bin/* /usr/local/bin
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 RUN etcd --version
 FROM base AS etcd
-ARG ARCH
-ARG TAG
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 COPY --from=etcd-builder /usr/local/bin/ /usr/local/bin/
 
 #Build coredns
 FROM build AS coredns-builder
 # setup the build
-ARG ARCH
 ARG SRC=github.com/coredns/coredns
 ARG PKG=github.com/coredns/coredns
-ARG COREDNS_VERSION="v1.6.9"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
@@ -342,8 +336,6 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN coredns --version
 FROM base AS coredns
-ARG ARCH
-ARG TAG
 COPY --from=coredns-builder /usr/local/bin/coredns /coredns
 ENTRYPOINT ["/coredns"]
 
@@ -351,16 +343,11 @@ ENTRYPOINT ["/coredns"]
 FROM build AS kube-proxy-builder
 RUN set -x
 # setup the build
-ARG ARCH
-ARG K3S_ROOT_VERSION="v0.8.1"
 ADD https://github.com/k3s-io/k3s-root/releases/download/${K3S_ROOT_VERSION}/k3s-root-${ARCH}.tar /opt/k3s-root/k3s-root.tar
 RUN tar xvf /opt/k3s-root/k3s-root.tar -C /opt/k3s-root --wildcards --strip-components=2 './bin/aux/*tables*'
 RUN tar xvf /opt/k3s-root/k3s-root.tar -C /opt/k3s-root './bin/ipset'
-ARG KUBE_PROXY_VERSION="v1.18.8"
 ARG PKG="github.com/kubernetes/kubernetes"
 ARG SRC="github.com/kubernetes/kubernetes"
-ARG MAJOR
-ARG MINOR
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
@@ -379,10 +366,7 @@ RUN go-assert-static.sh bin/*
 # install (with strip) to /usr/local/bin
 RUN install -s bin/* /usr/local/bin
 RUN kube-proxy --version
-FROM base AS kube-proxy
-ARG ARCH
-ARG TAG
-ARG K3S_ROOT_VERSION
+MAJORFROM base AS kube-proxy
 RUN apk --no-cache add \
     conntrack-tools    \
     which
