@@ -1,14 +1,14 @@
 ARG KUBERNETES_VERSION=dev
+ARG ARCH=amd64
 ARG K3S_VERSION=${KUBERNETES_VERSION}-k3s1
 ARG GOLANG_VERSION=1.16.3
-ARG BASE_IMAGE=alpine
-ARG CALICO_BIRD_VERSION=v0.3.3
-
-FROM ${BASE_IMAGE} AS base
-RUN apk --update --no-cache add ca-certificates
-
-FROM library/golang:${GOLANG_VERSION}-alpine AS goboring
 ARG GOBORING_BUILD=7
+ARG TRIVY_VERSION=0.17.2
+ARG BASE_IMAGE=alpine
+ARG CALICO_BIRD_VERSION=v0.3.3-169-g0b0c2c14
+
+FROM library/golang:$GOLANG_VERSION-alpine AS goboring
+ARG GOBORING_BUILD
 RUN apk --no-cache add \
     bash \
     g++
@@ -20,7 +20,7 @@ RUN /bin/bash -c /usr/local/boring/go/src/make.bash
 COPY scripts-boring/ /usr/local/boring/go/bin/
 
 FROM library/golang:${GOLANG_VERSION}-alpine AS trivy
-ARG TRIVY_VERSION=0.17.2
+ARG TRIVY_VERSION
 RUN set -ex; \
     if [ "$(go env GOARCH)" = "arm64" ]; then \
         wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-ARM64.tar.gz"; \
@@ -67,7 +67,7 @@ RUN set -x \
 
 # Dapper/Drone/CI environment
 FROM build AS dapper
-ENV DAPPER_ENV GODEBUG REPO TAG DRONE_TAG PAT_USERNAME PAT_TOKEN KUBERNETES_VERSION DOCKER_BUILDKIT DRONE_BUILD_EVENT IMAGE_NAME GCLOUD_AUTH ENABLE_REGISTRY TRIVY_VERSION BASE_IMAGE GOLANG_VERSION GOBORING_BUILD ETCD_VERSION PAUSE_VERSION RUNC_VERSION CRICTL_VERSION PROTOC_VERSION CONTAINERD_VERSION METRICS_SERVER_VERSION COREDNS_VERSION K3S_VERSION K3S_ROOT_VERSION FLANNEL_VERSION CALICO_VERSION CALICO_BPFTOOL_VERSION CALICO_BIRD_VERSION CNI_PLUGINS_VERSION HELM_VERSION NGINX_INGRESS_VERSION NGINX_INGRESS_DEFAULT_BACKEND_VERSION CILIUM_VERSION CILIUM_STARTUP_SCRIPT
+ENV DAPPER_ENV GODEBUG REPO DRONE_TAG PAT_USERNAME PAT_TOKEN KUBERNETES_VERSION MAJOR MINOR ARCH DOCKER_BUILDKIT DRONE_BUILD_EVENT IMAGE_NAME GCLOUD_AUTH ENABLE_REGISTRY TRIVY_VERSION BASE_IMAGE GOLANG_VERSION GOBORING_BUILD TAG PAUSE_VERSION RUNC_VERSION CRICTL_VERSION PROTOC_VERSION CONTAINERD_VERSION TAG TAG K3S_VERSION K3S_ROOT_VERSION FLANNEL_VERSION TAG CALICO_BPFTOOL_VERSION CALICO_BIRD_VERSION CNI_PLUGINS_VERSION HELM_VERSION NGINX_INGRESS_VERSION NGINX_INGRESS_DEFAULT_BACKEND_VERSION CILIUM_VERSION CILIUM_STARTUP_SCRIPT CALICO_BIRD_VERSION
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
 ENV DAPPER_OUTPUT ./dist ./bin ./build
@@ -152,6 +152,9 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin/
 RUN kube-proxy --version
 
+FROM ${BASE_IMAGE} AS base
+RUN apk --update --no-cache add ca-certificates
+
 FROM base AS kubernetes
 RUN apk --update --no-cache add iptables
 COPY --from=build-k8s \
@@ -178,17 +181,16 @@ RUN rm -vf /charts/*.sh /charts/*.md
 #build containerd
 FROM build AS containerd-builder
 # setup required packages
-ARG ARCH
-ARG PROTOC_VERSION=3.11.4
+ARG CONTAINERD_VERSION
+ARG PROTOC_VERSION
 RUN set -x
 RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; wget https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-$archurl.zip
 RUN archurl=x86_64; if [[ "$ARCH" == "arm64" ]]; then archurl=aarch_64; fi; unzip protoc-${PROTOC_VERSION}-linux-$archurl.zip -d /usr
 # setup containerd build
 ARG SRC="github.com/rancher/containerd"
 ARG PKG="github.com/containerd/containerd"
-ARG CONTAINERD_VERSION="v1.4.4-k3s1"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
 RUN git checkout tags/${CONTAINERD_VERSION} -b ${CONTAINERD_VERSION}
 ENV GO_BUILDTAGS="apparmor,seccomp,selinux,static_build,netgo,osusergo"
@@ -208,46 +210,40 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN containerd --version
 FROM base AS containerd
-ARG ARCH
-ARG TAG
 COPY --from=containerd-builder /usr/local/bin/ /usr/local/bin/
 
 #Build crictl
 FROM build AS crictl-builder
 # setup the build
+ARG CRICTL_VERSION
 ARG PKG="github.com/kubernetes-sigs/cri-tools"
 ARG SRC="github.com/kubernetes-sigs/cri-tools"
-ARG CRICTL_VERSION="v1.19.0"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
 RUN git checkout tags/${CRICTL_VERSION} -b ${CRICTL_VERSION}
-ENV GO_LDFLAGS="-linkmode=external -X ${PKG}/pkg/version.Version=${TAG}"
+ENV GO_LDFLAGS="-linkmode=external -X ${PKG}/pkg/version.Version=${CRICTL_VERSION}"
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/crictl ./cmd/crictl
 RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 FROM base AS crictl
-ARG ARCH
-ARG TAG
 COPY --from=crictl-builder /usr/local/bin/ /usr/local/bin/
 
 #Build runc
 FROM build AS runc-builder
 # setup the build
-ARG ARCH
+ARG RUNC_VERSION
+ENV TAG=${RUNC_VERSION}
 ARG PKG="github.com/opencontainers/runc"
 ARG SRC="github.com/opencontainers/runc"
-ARG RUNC_VERSION="v1.0.0-rc93"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${RUNC_VERSION} -b ${RUNC_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN BUILDTAGS='seccomp selinux apparmor' make static
 RUN go-assert-static.sh runc
 RUN install -s runc /usr/local/bin
 FROM base AS runc
-ARG ARCH
-ARG TAG
 COPY --from=runc-builder /usr/local/bin/ /usr/local/bin/
 
 # rke-runtime image
@@ -257,14 +253,6 @@ COPY --from=runc-builder /usr/local/bin/ /usr/local/bin/
 FROM rancher/k3s:${K3S_VERSION} AS k3s
 
 FROM scratch AS runtime-collect
-ARG ARCH
-ARG TAG
-ARG K3S_VERSION
-ARG RUNC_VERSION
-ARG CRICTL_VERSION
-ARG CONTAINERD_VERSION
-ARG KUBERNETES_VERSION
-ARG CHARTS_VERSION
 COPY --from=k3s \
     /bin/socat \
     /bin/
@@ -290,24 +278,18 @@ COPY --from=charts \
     /charts/
 
 FROM scratch AS runtime
-ARG ARCH
-ARG TAG
-ARG K3S_VERSION
-ARG RUNC_VERSION
-ARG CRICTL_VERSION
-ARG CONTAINERD_VERSION
-ARG KUBERNETES_VERSION
-ARG CHARTS_VERSION
 COPY --from=runtime-collect / /
 
 #Build etcd
 FROM build AS etcd-builder
+ARG ARCH
+ARG TAG
 ARG PKG=go.etcd.io/etcd
 ARG SRC=github.com/rancher/etcd
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${ETCD_VERSION} -b ${ETCD_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 # build and assert statically linked executable(s)
 RUN go mod vendor \
  && export GO_LDFLAGS="-linkmode=external -X ${PKG}/version.GitSHA=$(git rev-parse --short HEAD)" \
@@ -324,12 +306,14 @@ COPY --from=etcd-builder /usr/local/bin/ /usr/local/bin/
 #Build coredns
 FROM build AS coredns-builder
 # setup the build
+ARG ARCH
+ARG TAG
 ARG SRC=github.com/coredns/coredns
 ARG PKG=github.com/coredns/coredns
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${COREDNS_VERSION} -b ${COREDNS_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN GO_LDFLAGS="-linkmode=external -X ${PKG}/coremain.GitCommit=$(git rev-parse --short HEAD)" \
     go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/coredns .
 RUN go-assert-static.sh bin/*
@@ -341,23 +325,27 @@ ENTRYPOINT ["/coredns"]
 
 #Build kube-proxy
 FROM build AS kube-proxy-builder
-RUN set -x
+ARG ARCH
+ARG TAG
+ARG MAJOR
+ARG MINOR
+ARG K3S_ROOT_VERSION
 # setup the build
 ADD https://github.com/k3s-io/k3s-root/releases/download/${K3S_ROOT_VERSION}/k3s-root-${ARCH}.tar /opt/k3s-root/k3s-root.tar
 RUN tar xvf /opt/k3s-root/k3s-root.tar -C /opt/k3s-root --wildcards --strip-components=2 './bin/aux/*tables*'
 RUN tar xvf /opt/k3s-root/k3s-root.tar -C /opt/k3s-root './bin/ipset'
 ARG PKG="github.com/kubernetes/kubernetes"
 ARG SRC="github.com/kubernetes/kubernetes"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${KUBE_RPOXY_VERSION} -b ${KUBE_PROXY_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN GO_LDFLAGS="-linkmode=external \
     -X k8s.io/client-go/pkg/version.gitMajor=${MAJOR} \
     -X k8s.io/client-go/pkg/version.gitMinor=${MINOR} \
     -X k8s.io/component-base/version.gitMajor=${MAJOR} \
     -X k8s.io/component-base/version.gitMinor=${MINOR} \
-    -X k8s.io/component-base/version.gitVersion=${KUBE_PROXY_VERSION} \
+    -X k8s.io/component-base/version.gitVersion=${TAG} \
     -X k8s.io/component-base/version.gitCommit=$(git rev-parse HEAD) \
     -X k8s.io/component-base/version.gitTreeState=clean \
     -X k8s.io/component-base/version.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
@@ -366,7 +354,7 @@ RUN go-assert-static.sh bin/*
 # install (with strip) to /usr/local/bin
 RUN install -s bin/* /usr/local/bin
 RUN kube-proxy --version
-MAJORFROM base AS kube-proxy
+FROM base AS kube-proxy
 RUN apk --no-cache add \
     conntrack-tools    \
     which
@@ -377,15 +365,16 @@ COPY --from=kube-proxy-builder /usr/local/bin/ /usr/local/bin/
 #Build metrics-server
 FROM build AS metrics-server-builder
 ARG ARCH
+ARG TAG
 ARG PKG="github.com/kubernetes-incubator/metrics-server"
 ARG SRC="github.com/kubernetes-sigs/metrics-server"
-ARG METRICS_SERVER_VERSION="v0.4.4"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN set -x
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${METRICS_SERVER_VERSION} -b ${METRICS_SERVER_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN GO_LDFLAGS="-linkmode=external \
-    -X ${PKG}/pkg/version.Version=${METRICS_SERVER_VERSION} \
+    -X ${PKG}/pkg/version.Version=${TAG} \
     -X ${PKG}/pkg/version.gitCommit=$(git rev-parse HEAD) \
     -X ${PKG}/pkg/version.gitTreeState=clean \
     " \
@@ -394,27 +383,26 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN metrics-server --help
 FROM base AS metrics-server
-ARG ARCH
-ARG TAG
 COPY --from=metrics-server-builder /usr/local/bin/metrics-server /
 ENTRYPOINT ["/metrics-server"]
 
+# Build K3S xtables
 FROM build AS k3s_xtables
 ARG ARCH
-ARG K3S_ROOT_VERSION="v0.8.1"
+ARG K3S_ROOT_VERSION
 ADD https://github.com/rancher/k3s-root/releases/download/${K3S_ROOT_VERSION}/k3s-root-xtables-${ARCH}.tar /opt/xtables/k3s-root-xtables.tar
 RUN tar xvf /opt/xtables/k3s-root-xtables.tar -C /opt/xtables
 
 #Build flannel
-FROM k3s_xtables AS flannel-builder
+FROM build AS flannel-builder
 ARG ARCH
-ARG FLANNEL_VERSION="v0.13.0-rancher1"
+ARG TAG
 ARG PKG="github.com/coreos/flannel"
 ARG SRC="github.com/rancher/flannel"
-RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
-WORKDIR $GOPATH/src/${PKG}
+RUN git clone --depth=1 https://${SRC}.git ${GOPATH}/src/${PKG}
+WORKDIR ${GOPATH}/src/${PKG}
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${FLANNEL_VERSION} -b ${FLANNEL_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 # build and assert statically linked executable(s)
 ENV GO_LDFLAGS="-X ${PKG}/version.Version=${FLANNEL_VERSION} -linkmode=external"
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/flanneld .
@@ -422,16 +410,12 @@ RUN go-assert-static.sh bin/*
 RUN install -s bin/* /usr/local/bin
 RUN flanneld --version
 FROM base AS flannel
-ARG ARCH
-ARG FLANNEL_VERSION=v0.13.0
-ARG K3S_ROOT_VERSION=v0.8.1
 RUN apk --no-cache add             \
     ca-certificates                \
-    strongswan net-tools which  && \
+    strongswan net-tools which
 COPY --from=flannel-builder /opt/xtables/bin/ /usr/sbin/
-COPY --from=flannel-builder /usr/local/bin/ /opt/bin/
+COPY --from=k3s_xtables /usr/local/bin/ /opt/bin/
 
-FROM calico/bird:${CALICO_BIRD_VERSION}-${ARCH} AS calico_bird
 ### BEGIN CALICO BPFTOOL  #####
 FROM debian:buster-slim as calico_bpftool
 ARG ARCH
@@ -462,13 +446,13 @@ RUN cd linux/tools/bpf/bpftool/ && \
 ### BEGIN CALICOCTL ###
 FROM build AS calico_ctl
 ARG ARCH
-ARG CALICO_VERSION="v3.18.3"
-RUN git clone --depth=1 https://github.com/projectcalico/calicoctl.git $GOPATH/src/github.com/projectcalico/calicoctl
-WORKDIR $GOPATH/src/github.com/projectcalico/calicoctl
+ARG TAG
+RUN git clone --depth=1 https://github.com/projectcalico/calicoctl.git ${GOPATH}/src/github.com/projectcalico/calicoctl
+WORKDIR ${GOPATH}/src/github.com/projectcalico/calicoctl
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${CALICO_VERSION} -b ${CALICO_VERSION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN GO_LDFLAGS="-linkmode=external \
-    -X github.com/projectcalico/calicoctl/calicoctl/commands.VERSION=${CALICO_VERSION} \
+    -X github.com/projectcalico/calicoctl/calicoctl/commands.VERSION=${TAG} \
     -X github.com/projectcalico/calicoctl/calicoctl/commands.GIT_REVISION=$(git rev-parse --short HEAD) \
     " go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/calicoctl ./calicoctl/calicoctl.go
 RUN go-assert-static.sh bin/*
@@ -477,12 +461,12 @@ RUN calicoctl --version
 ### END CALICOCTL #####
 ### BEGIN CALICO CNI ###
 FROM build AS calico_cni
-ARG CALICO_VERSRION="v3.18.3"
-RUN git clone --depth=1 https://github.com/projectcalico/cni-plugin.git $GOPATH/src/github.com/projectcalico/cni-plugin
-WORKDIR $GOPATH/src/github.com/projectcalico/cni-plugin
+ARG TAG
+RUN git clone --depth=1 https://github.com/projectcalico/cni-plugin.git ${GOPATH}/src/github.com/projectcalico/cni-plugin
+WORKDIR ${GOPATH}/src/github.com/projectcalico/cni-plugin
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${CALICO_VERSRION} -b ${CALICO_VERSRION}
-ENV GO_LDFLAGS="-linkmode=external -X main.VERSION=${CALICO_VERSRION}"
+RUN git checkout tags/${TAG} -b ${TAG}
+ENV GO_LDFLAGS="-linkmode=external -X main.VERSION=${TAG}"
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/calico ./cmd/calico
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/calico-ipam ./cmd/calico-ipam
 RUN go-assert-static.sh bin/*
@@ -493,14 +477,13 @@ RUN install -m 0644 k8s-install/scripts/calico.conf.default /opt/cni/calico.conf
 ### END CALICO CNI #####
 ### BEGIN CALICO NODE ###
 FROM build AS calico_node
-ARG ARCH
-ARG CALICO_VERSRION="v3.18.3"
-RUN git clone --depth=1 https://github.com/projectcalico/node.git $GOPATH/src/github.com/projectcalico/node
-WORKDIR $GOPATH/src/github.com/projectcalico/node
+ARG TAG
+RUN git clone --depth=1 https://github.com/projectcalico/node.git ${GOPATH}/src/github.com/projectcalico/node
+WORKDIR ${GOPATH}/src/github.com/projectcalico/node
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${CALICO_VERSRION} -b ${CALICO_VERSRION}
+RUN git checkout tags/${TAG} -b ${TAG}
 RUN GO_LDFLAGS="-linkmode=external \
-    -X github.com/projectcalico/node/pkg/startup.VERSION=${CALICO_VERSRION} \
+    -X github.com/projectcalico/node/pkg/startup.VERSION=${TAG} \
     -X github.com/projectcalico/node/buildinfo.GitRevision=$(git rev-parse HEAD) \
     -X github.com/projectcalico/node/buildinfo.GitVersion=$(git describe --tags --always) \
     -X github.com/projectcalico/node/buildinfo.BuildDate=$(date -u +%FT%T%z) \
@@ -510,12 +493,11 @@ RUN install -s bin/* /usr/local/bin
 ### END CALICO NODE #####
 ### BEGIN CALICO POD2DAEMON ###
 FROM build AS calico_pod2daemon
-ARG ARCH
-ARG CALICO_VERSRION="v3.18.3"
-RUN git clone --depth=1 https://github.com/projectcalico/pod2daemon.git $GOPATH/src/github.com/projectcalico/pod2daemon
-WORKDIR $GOPATH/src/github.com/projectcalico/pod2daemon
+ARG TAG
+RUN git clone --depth=1 https://github.com/projectcalico/pod2daemon.git ${GOPATH}/src/github.com/projectcalico/pod2daemon
+WORKDIR ${GOPATH}/src/github.com/projectcalico/pod2daemon
 RUN git fetch --all --tags --prune
-RUN git checkout tags/${CALICO_VERSRION} -b ${CALICO_VERSRION}
+RUN git checkout tags/${TAG} -b ${TAG}
 ENV GO_LDFLAGS="-linkmode=external"
 RUN go-build-static.sh -gcflags=-trimpath=${GOPATH}/src -o bin/flexvoldriver ./flexvol
 RUN go-assert-static.sh bin/*
@@ -526,8 +508,8 @@ RUN install -D -s bin/flexvoldriver /usr/local/bin/flexvol/flexvoldriver
 FROM build AS cni_plugins
 ARG ARCH
 ARG CNI_PLUGINS_VERSION="v0.9.1"
-RUN git clone --depth=1 https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
-WORKDIR $GOPATH/src/github.com/containernetworking/plugins
+RUN git clone --depth=1 https://github.com/containernetworking/plugins.git ${GOPATH}/src/github.com/containernetworking/plugins
+WORKDIR ${GOPATH}/src/github.com/containernetworking/plugins
 RUN git fetch --all --tags --prune
 RUN git checkout tags/${CNI_PLUGINS_VERSION} -b ${CNI_PLUGINS_VERSION}
 RUN sh -ex ./build_linux.sh -v \
@@ -541,14 +523,9 @@ RUN go-assert-static.sh bin/*
 RUN mkdir -vp /opt/cni/bin
 RUN install -D -s bin/* /opt/cni/bin
 ### END CNI PLUGINS #####
+FROM calico/bird:${CALICO_BIRD_VERSION}-${ARCH} AS calico_bird
 # gather all of the disparate calico bits into a rootfs overlay
 FROM scratch AS calico_rootfs_overlay
-ARG ARCH
-ARG TAG
-ARG CNI_PLUGINS_VERSION
-ARG CALICO_BPFTOOL_VERSION
-ARG CALICO_BIRD_VERSION
-ARG K3S_ROOT_VERSION
 COPY --from=calico_node /go/src/github.com/projectcalico/node/filesystem/etc/       /etc/
 COPY --from=calico_node /go/src/github.com/projectcalico/node/filesystem/licenses/  /licenses/
 COPY --from=calico_node /go/src/github.com/projectcalico/node/filesystem/sbin/      /usr/sbin/
@@ -561,13 +538,7 @@ COPY --from=calico_cni /opt/cni/                /opt/cni/
 COPY --from=cni_plugins /opt/cni/               /opt/cni/
 COPY --from=k3s_xtables /opt/xtables/bin/       /usr/sbin/
 FROM base AS calico
-ARG ARCH
-ARG TAG
-ARG CNI_PLUGINS_VERSION
-ARG CALICO_BPFTOOL_VERSION
-ARG CALICO_BIRD_VERSION
-ARG K3S_ROOT_VERSION
-RUN apk --no-cache add                         && \
+RUN apk --no-cache add                            \
     iptables conntrack-tools libcap               \
     ipset kmod iputils runit                      \
     procps net-tools conntrack-tools which 
