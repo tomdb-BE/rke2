@@ -419,9 +419,8 @@ COPY --from=flannel-builder /usr/local/bin/ /opt/bin/
 ### BEGIN CALICO BPFTOOL  #####
 FROM debian:buster-slim as calico_bpftool
 ARG ARCH
-ARG CALICO_BPFTOOL_VERSION=v5.10
+ARG CALICO_BPFTOOL_VERSION
 ARG KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-ARG KERNEL_REF=${CALICO_BPFTOOL_VERSION}
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -431,7 +430,7 @@ RUN apt-get update && \
     apt-get purge --auto-remove && \
     apt-get clean
 WORKDIR /tmp
-RUN git clone --depth 1 -b $KERNEL_REF $KERNEL_REPO
+RUN git clone --depth 1 -b ${CALICO_BPFTOOL_VERSION} $KERNEL_REPO
 RUN cd linux/tools/bpf/bpftool/ && \
     sed -i '/CFLAGS += -O2/a CFLAGS += -static' Makefile && \
     sed -i 's/LIBS = -lelf $(LIBBPF)/LIBS = -lelf -lz $(LIBBPF)/g' Makefile && \

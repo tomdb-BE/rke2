@@ -1,5 +1,6 @@
 # RKE2
-EXPERIMENTAL ALPINE - amd64-arm64
+EXPERIMENTAL alpine based all-in-one - mulit arch amd64-arm64
+Testing on rpi4
 ![RKE2](docs/assets/logo-horizontal-rke.svg)
 
 RKE2, also known as RKE Government, is Rancher's next-generation Kubernetes distribution.
