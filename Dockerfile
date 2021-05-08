@@ -413,8 +413,8 @@ FROM base AS flannel
 RUN apk --no-cache add             \
     ca-certificates                \
     strongswan net-tools which
-COPY --from=flannel-builder /opt/xtables/bin/ /usr/sbin/
-COPY --from=k3s_xtables /usr/local/bin/ /opt/bin/
+COPY --from=k3s_xtables /opt/xtables/bin/ /usr/sbin/
+COPY --from=flannel-builder /usr/local/bin/ /opt/bin/
 
 ### BEGIN CALICO BPFTOOL  #####
 FROM debian:buster-slim as calico_bpftool
