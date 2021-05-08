@@ -395,7 +395,7 @@ FROM build AS metrics-server-builder
 ARG ARCH
 ARG PKG="github.com/kubernetes-incubator/metrics-server"
 ARG SRC="github.com/kubernetes-sigs/metrics-server"
-ARG TAG="v0.4.4"
+ARG METRICS_SERVER_VERSION="v0.3.7"
 RUN git clone --depth=1 https://${SRC}.git $GOPATH/src/${PKG}
 WORKDIR $GOPATH/src/${PKG}
 RUN git fetch --all --tags --prune
