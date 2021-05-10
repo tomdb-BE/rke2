@@ -38,17 +38,16 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
     ${REGISTRY}/cilium/startup-script:${CILIUM_STARTUP_SCRIPT_VERSION}
 EOF
 
-xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
-    ${REGISTRY_QUAY}/calico/operator:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/ctl:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/kube-controllers:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/typha:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/node:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/pod2daemon-flexvol:${CALICO_VERSION}
-    ${REGISTRY_QUAY}/calico/cni:${CALICO_VERSION}
-EOF
-
 if [[ $GOARCH == "amd64" ]]; then
+    xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
+        ${REGISTRY}/rancher/mirrored-calico-operator:v1.15.1
+        ${REGISTRY}/rancher/mirrored-calico-ctl:v3.18.1
+        ${REGISTRY}/calico/kube-controllers:v3.18.1
+        ${REGISTRY}/calico/typha:v3.18.1
+        ${REGISTRY}/calico/node:v3.18.1
+        ${REGISTRY}/calico/pod2daemon-flexvol:v3.18.1
+        ${REGISTRY}/calico/cni:v3.18.1
+    EOF
     xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_RELEASE_MANAGER_VERSION}
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_RELEASE_DRIVER_VERSION}

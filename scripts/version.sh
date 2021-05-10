@@ -3,7 +3,6 @@ set -x
 
 PROG=rke2
 REGISTRY=docker.io
-REGISTRY_QUAY=quay.io
 REPO=${REPO:-rancher}
 K3S_PKG=github.com/rancher/k3s
 RKE2_PKG=github.com/rancher/rke2
