@@ -16,12 +16,12 @@ awk '{print $1}' << EOF > build/images-core.txt
     ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-kube-proxy:${KUBE_PROXY_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/nginx-ingress-controller-defaultbackend:${NGINX_INGRESS_DEFAULT_BACKEND_VERSION}${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
     ${REGISTRY}/rancher/klipper-helm:${HELM_VERSION}
     ${REGISTRY}/rancher/pause:${PAUSE_VERSION}
-    ${REGISTRY}/rancher/nginx-ingress-controller-defaultbackend:${NGINX_INGRESS_DEFAULT_BACKEND_VERSION}
     ${REGISTRY}/rancher/nginx-ingress-controller:${NGINX_INGRESS_VERSION}
 EOF
 
@@ -38,7 +38,7 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
     ${REGISTRY}/cilium/startup-script:${CILIUM_STARTUP_SCRIPT_VERSION}
 EOF
 
-if [[ $GOARCH == "amd64" ]]; then
+if [[ $GOARCH == amd64 ]]; then
     xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
         ${REGISTRY}/rancher/mirrored-calico-operator:v1.15.1
         ${REGISTRY}/rancher/mirrored-calico-ctl:v3.18.1
@@ -48,6 +48,9 @@ if [[ $GOARCH == "amd64" ]]; then
         ${REGISTRY}/calico/pod2daemon-flexvol:v3.18.1
         ${REGISTRY}/calico/cni:v3.18.1
 EOF
+fi
+
+if [[ $GOARCH == amd64 ]]; then
     xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_RELEASE_MANAGER_VERSION}
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_RELEASE_DRIVER_VERSION}

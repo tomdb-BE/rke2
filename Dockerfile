@@ -6,6 +6,7 @@ ARG GOBORING_BUILD=7
 ARG TRIVY_VERSION=0.17.2
 ARG BASE_IMAGE=alpine
 ARG CALICO_BIRD_VERSION=v0.3.3-169-g0b0c2c14
+ARG DEFAULT_BACKEND_TAG=v1.5
 
 FROM library/golang:$GOLANG_VERSION-alpine AS goboring
 ARG GOBORING_BUILD
@@ -548,6 +549,18 @@ RUN set -x \
  && ln -vs /opt/cni/install-cni.sh /install-cni.sh \
  && test -e /opt/cni/calico.conf.default \
  && ln -vs /opt/cni/calico.conf.default /calico.conf.tmp
+
+# ingress-default-backend rebuild multiarch image
+FROM rancher/nginx-ingress-controller-defaultbackend:${DEFAULT_BACKEND_TAG}-${ARCH} AS default-backend-dockerio
+FROM alpine AS ingress-default-backend-build
+COPY --from=default-backend-dockerio / /
+RUN if [ -e /server-arm64 ]; then mv /server-arm64 /server; fi  && \
+    chown 65534:65534 /server && \
+    chmod +x /server
+FROM scratch AS ingress-default-backend
+USER 65534:65534
+COPY --from=ingress-default-backend-build /server /server
+ENTRYPOINT ["/server"]
 
 FROM ubuntu:18.04 AS test
 ARG TARGETARCH
