@@ -39,13 +39,13 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
-    ${REGISTRY}/calico/operator:${CALICO_VERSION}
-    ${REGISTRY}/calico/ctl:${CALICO_VERSION}
-    ${REGISTRY}/calico/kube-controllers:${CALICO_VERSION}
-    ${REGISTRY}/calico/typha:${CALICO_VERSION}
-    ${REGISTRY}/calico/node:${CALICO_VERSION}
-    ${REGISTRY}/calico/pod2daemon-flexvol:${CALICO_VERSION}
-    ${REGISTRY}/calico/cni:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/operator:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/ctl:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/kube-controllers:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/typha:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/node:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/pod2daemon-flexvol:${CALICO_VERSION}
+    ${REGISTRY_QUAY}/calico/cni:${CALICO_VERSION}
 EOF
 
 if [[ $GOARCH == "amd64" ]]; then
