@@ -47,7 +47,7 @@ if [[ $GOARCH == "amd64" ]]; then
         ${REGISTRY}/calico/node:v3.18.1
         ${REGISTRY}/calico/pod2daemon-flexvol:v3.18.1
         ${REGISTRY}/calico/cni:v3.18.1
-    EOF
+EOF
     xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_RELEASE_MANAGER_VERSION}
         ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_RELEASE_DRIVER_VERSION}
@@ -57,7 +57,7 @@ if [[ $GOARCH == "amd64" ]]; then
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-provisioner:${K8SCSI_CSI_PROVISIONER_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-resizer:${K8SCSI_CSI_RESIZER_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-livenessprobe:${K8SCSI_CSI_LIVENESSPROBE_VERSION}
-    EOF
+EOF
 fi
 
 # Continue to provide a legacy airgap archive set with the default CNI images
