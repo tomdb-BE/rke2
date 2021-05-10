@@ -27,7 +27,7 @@ EOF
 
 awk '{print $1}' << EOF > build/images-canal.txt
     ${REGISTRY}/${REPO}/hardened-calico:${CALICO_VERSION}${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL-VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL_VERSION}${IMAGE_BUILD_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
