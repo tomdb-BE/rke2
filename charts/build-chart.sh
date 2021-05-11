@@ -23,3 +23,11 @@ spec:
   bootstrap: ${CHART_BOOTSTRAP:=false}
   chartContent: $(base64 -w0 < "${CHART_TMP}")
 EOF
+
+if [[ ! -z ${CHART_TAG} ]]; then
+cat <<-EOF >> "${CHART_FILE}"
+  valuesContent: |-
+    image:
+      tag: "${CHART_TAG}"
+EOF
+fi
