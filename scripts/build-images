@@ -26,7 +26,7 @@ xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
 EOF
 
 awk '{print $1}' << EOF > build/images-canal.txt
-    ${REGISTRY}/${REPO}/hardened-calico:${CALICO_VERSION}${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-calico:${CANAL_VERSION}${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL_VERSION}${IMAGE_BUILD_VERSION}
 EOF
 
@@ -40,26 +40,26 @@ EOF
 
 if [[ $GOARCH == amd64 ]]; then
     xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
-        ${REGISTRY}/rancher/mirrored-calico-operator:v1.15.1
-        ${REGISTRY}/rancher/mirrored-calico-ctl:v3.18.1
-        ${REGISTRY}/calico/kube-controllers:v3.18.1
-        ${REGISTRY}/calico/typha:v3.18.1
-        ${REGISTRY}/calico/node:v3.18.1
-        ${REGISTRY}/calico/pod2daemon-flexvol:v3.18.1
-        ${REGISTRY}/calico/cni:v3.18.1
+        ${REGISTRY}/rancher/mirrored-calico-operator:${CALICO_OPERATOR_VERSION}
+        ${REGISTRY}/rancher/mirrored-calico-ctl:${CALICO_VERSION}
+        ${REGISTRY}/calico/kube-controllers:${CALICO_VERSION}
+        ${REGISTRY}/calico/typha:${CALICO_VERSION}
+        ${REGISTRY}/calico/node:${CALICO_VERSION}
+        ${REGISTRY}/calico/pod2daemon-flexvol${CALICO_VERSION}
+        ${REGISTRY}/calico/cni:${CALICO_VERSION}
 EOF
 fi
 
 if [[ $GOARCH == amd64 ]]; then
     xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
-        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_RELEASE_MANAGER_VERSION}
-        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_RELEASE_DRIVER_VERSION}
-        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-syncer:${VSPHERE_CSI_RELEASE_SYNCER_VERSION}
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_VERSION}
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_VERSION}
+        ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-syncer:${VSPHERE_CSI_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-attacher:${K8SCSI_CSI_ATTACHER_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-node-driver-registrar:${K8SCSI_CSI_NODE_DRIVER_REGISTRAR_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-provisioner:${K8SCSI_CSI_PROVISIONER_VERSION}
         ${REGISTRY}/rancher/mirrored-k8scsi-csi-resizer:${K8SCSI_CSI_RESIZER_VERSION}
-        ${REGISTRY}/rancher/mirrored-k8scsi-livenessprobe:${K8SCSI_CSI_LIVENESSPROBE_VERSION}
+        ${REGISTRY}/rancher/mirrored-k8scsi-livenessprobe:${VSPHERE_CSI_VERSION}
 EOF
 fi
 

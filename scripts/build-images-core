@@ -50,13 +50,13 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
 
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg ARCH=${GOARCH} \
-    --build-arg TAG=${CALICO_VERSION} \
+    --build-arg TAG=${CANAL_VERSION} \
     --build-arg CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION} \
     --build-arg CALICO_BPFTOOL_VERSION=${CALICO_BPFTOOL_VERSION} \
     --build-arg CALICO_BIRD_VERSION=${CALICO_BIRD_VERSION} \
     --build-arg K3S_ROOT_VERSION=${K3S_ROOT_VERSION} \
-    --tag ${REPO}/hardened-calico:${CALICO_VERSION}${IMAGE_BUILD_VERSION} \
-    --tag ${REPO}/hardened-calico:${CALICO_VERSION}${IMAGE_BUILD_VERSION}-${GOARCH} \
+    --tag ${REPO}/hardened-calico:${CANAL_VERSION}${IMAGE_BUILD_VERSION} \
+    --tag ${REPO}/hardened-calico:${CANAL_VERSION}${IMAGE_BUILD_VERSION}-${GOARCH} \
     --target calico \
     .
 
