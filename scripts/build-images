@@ -45,7 +45,7 @@ if [[ $GOARCH == amd64 ]]; then
         ${REGISTRY}/calico/kube-controllers:${CALICO_VERSION}
         ${REGISTRY}/calico/typha:${CALICO_VERSION}
         ${REGISTRY}/calico/node:${CALICO_VERSION}
-        ${REGISTRY}/calico/pod2daemon-flexvol${CALICO_VERSION}
+        ${REGISTRY}/calico/pod2daemon-flexvol:${CALICO_VERSION}
         ${REGISTRY}/calico/cni:${CALICO_VERSION}
 EOF
 fi
