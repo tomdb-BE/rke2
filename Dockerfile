@@ -166,7 +166,7 @@ FROM build AS charts
 ARG CHART_REPO="https://rke2-charts.rancher.io"
 ARG CACHEBUST="cachebust"
 ARG CILIUM_CHART_VERSION
-ARG CANAL_VERSION
+ARG CANAL_TAG_VERSION
 ARG CALICO_CHART_VERSION
 ARG CALICO_CRD_CHART_VERSION
 ARG COREDNS_CHART_VERSION
@@ -190,7 +190,7 @@ ARG VSPHERE_CSI_VERSION
 COPY charts/ /charts/
 RUN echo ${CACHEBUST}>/dev/null
 RUN CHART_VERSION=${CILIUM_CHART_VERSION}                        CHART_TAG=${CILIUM_VERSION}           CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION=${CANAL_VERSION}                               CHART_TAG=${CANAL_VERSION}            CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN CHART_VERSION=${CANAL_CHART_VERSION}                         CHART_TAG=${CANAL_VERSION}            CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${CALICO_CHART_VERSION}                        CHART_TAG=${CALICO_VERSION}           CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${CALICO_CRD_CHART_VERSION}                    CHART_TAG=${CALICO_CRD_VERSION}       CHART_FILE=/charts/rke2-calico-crd.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${COREDNS_CHART_VERSION}                       CHART_TAG=${COREDNS_VERSION}          CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
