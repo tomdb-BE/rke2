@@ -1,0 +1,13 @@
+  valuesContent: |-  
+    cilium:  
+      image:
+        tag: ${CHART_TAG}
+    operator:
+      image:
+        tag: ${CHART_TAG}
+    nodeinit:
+      image:
+        tag: ${CHART_TAG_STARTUP}
+    preflight:
+      image:
+        tag: ${CHART_TAG}

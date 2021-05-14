@@ -1,0 +1,11 @@
+  valuesContent: |-  
+    flannel:
+      image:
+        tag: ${CHART_TAG_FLANNEL}
+    calico:
+      cniImage:
+        tag: ${CHART_TAG}
+      nodeImage:
+        tag: ${CHART_TAG}
+      flexvolImage:
+        tag: ${CHART_TAG}

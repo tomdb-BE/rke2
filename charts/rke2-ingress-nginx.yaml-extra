@@ -1,0 +1,7 @@
+  valuesContent: |-  
+    controller:
+      image:
+        tag: ${CHART_TAG}
+    defaultBackend:
+      image:
+        tag: ${CHART_TAG_BACKEND}

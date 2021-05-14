@@ -1,0 +1,7 @@
+  valuesContent: |-  
+    multus:
+      image:
+        tag: ${CHART_TAG}
+    cniplugins:
+      image:
+        tag: ${CHART_TAG_CNI_PLUGIN}

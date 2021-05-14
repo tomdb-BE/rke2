@@ -28,7 +28,7 @@ if [[ -f "extra-${CHART_FILE}" ]]; then
   envsubst < "extra-${CHART_FILE}" >> "${CHART_FILE}"
 else
   cat <<-EOF > "${CHART_FILE}"
-  set:
+  valuesContent: |-
     image:
       tag: ${CHART_TAG}
 EOF

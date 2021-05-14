@@ -173,7 +173,7 @@ ARG CALICO_CRD_CHART_VERSION
 ARG COREDNS_CHART_VERSION
 ARG NGINX_INGRESS_CHART_VERSION
 ARG KUBE_PROXY_CHART_VERSION
-ARG KUBE_METRICS_SERVER_CHART_VERSION
+ARG METRICS_SERVER_CHART_VERSION
 ARG MULTUS_CHART_VERSION
 ARG VSPHERE_CPI_CHART_VERSION
 ARG VSPHERE_CSI_CHART_VERSION
@@ -185,7 +185,7 @@ ARG COREDNS_VERSION
 ARG NGINX_INGRESS_VERSION
 ARG NGINX_INGRESS_DEFAULT_BACKEND_VERSION
 ARG KUBE_PROXY_VERSION
-ARG KUBE_METRICS_SERVER_VERSION
+ARG METRICS_SERVER_VERSION
 ARG MULTUS_VERSION
 ARG CNI_PLUGIN_VERSION
 ARG VSPHERE_CPI_VERSION
@@ -199,7 +199,7 @@ RUN CHART_VERSION=${CALICO_CRD_CHART_VERSION}                    CHART_TAG=${CAL
 RUN CHART_VERSION=${COREDNS_CHART_VERSION}                       CHART_TAG=${COREDNS_VERSION}          CHART_TAG_ARCH=${ARCH}                                       CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${NGINX_INGRESS_CHART_VERSION}                 CHART_TAG=${NGINX_INGRESS_VERSION}    CHART_TAG_BACKEND=${NGINX_INGRESS_DEFAULT_BACKEND_VERSION}   CHART_FILE=/charts/rke2-ingress-nginx.yaml  CHART_BOOTSTRAP=false  /charts/build-chart.sh
 RUN CHART_VERSION=${KUBE_PROXY_CHART_VERSION}                    CHART_TAG=${KUBE_PROXY_VERSION}                                                                    CHART_FILE=/charts/rke2-kube-proxy.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION=${KUBE_METRICS_SERVER_CHART_VERSION}           CHART_TAG=${METRICS_SERVER_VERSION}                                                                CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
+RUN CHART_VERSION=${METRICS_SERVER_CHART_VERSION}                CHART_TAG=${METRICS_SERVER_VERSION}                                                                CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
 RUN CHART_VERSION=${MULTUS_CHART_VERSION}                        CHART_TAG=${MULTUS_VERSION}           CHART_TAG_CNI_PLUGIN=${CNI_PLUGIN_VERSION}                   CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${VSPHERE_CPI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CPI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-cpi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
 RUN CHART_VERSION=${VSPHERE_CSI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CSI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
