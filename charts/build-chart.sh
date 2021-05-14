@@ -24,10 +24,12 @@ spec:
   chartContent: $(base64 -w0 < "${CHART_TMP}")
 EOF
 
-if [[ ! -z ${CHART_TAG} ]]; then
-cat <<-EOF >> "${CHART_FILE}"
-  valuesContent: |-
+if [[ -f "extra-${CHART_FILE}" ]]; then
+  envsubst < "extra-${CHART_FILE}" >> "${CHART_FILE}"
+else
+  cat <<-EOF > "${CHART_FILE}"
+  set:
     image:
-      tag: "${CHART_TAG}"
+      tag: ${CHART_TAG}
 EOF
 fi
