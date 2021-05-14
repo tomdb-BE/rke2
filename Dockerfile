@@ -191,6 +191,7 @@ ARG CNI_PLUGIN_VERSION
 ARG VSPHERE_CPI_VERSION
 ARG VSPHERE_CSI_VERSION
 COPY charts/ /charts/
+RUN apk add --no-cache gettext
 RUN echo ${CACHEBUST}>/dev/null
 RUN CHART_VERSION=${CILIUM_CHART_VERSION}                        CHART_TAG=${CILIUM_VERSION}           CHART_TAG_STARTUP=${CILIUM_STARTUP_SCRIPT_VERSION}           CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${CANAL_CHART_VERSION}                         CHART_TAG=${CANAL_VERSION}            CHART_TAG_FLANNEL=${FLANNEL_VERSION}                         CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
