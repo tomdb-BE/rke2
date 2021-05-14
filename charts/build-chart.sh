@@ -25,7 +25,7 @@ spec:
 EOF
 
 if [[ -f "${CHART_FILE}-extra" ]]; then
-  envsubst << "${CHART_FILE}-extra" >> "${CHART_FILE}"
+  envsubst < "${CHART_FILE}-extra" >> "${CHART_FILE}"
 else
   cat <<-EOF >> "${CHART_FILE}"
   valuesContent: |-
