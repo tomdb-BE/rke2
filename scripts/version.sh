@@ -31,7 +31,7 @@ REVISION=$(git rev-parse HEAD)$(if ! git diff --no-ext-diff --quiet --exit-code;
 PLATFORM=${GOOS}-${GOARCH}
 RELEASE=${PROG}.${PLATFORM}
 if [[ ! -z "$IMAGE_BUILD_VERSION" ]]; then IMAGE_BUILD_VERSION=-${IMAGE_BUILD_VERSION}; fi
-if [[ ! $GOARCH == amd64 ]]; ARCH_EXTRA=-${GOARCH}; fi
+if [[ ! $GOARCH == amd64 ]]; then ARCH_EXTRA=-${GOARCH}; fi
 
 # hardcode versions unless set specifically
 KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.21.0}
