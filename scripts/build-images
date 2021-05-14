@@ -78,4 +78,4 @@ for FILE in build/images*.txt; do
     rm -f ${DEST}.tmp
 done
 
-./scripts/build-image-test
+#./scripts/build-image-test
