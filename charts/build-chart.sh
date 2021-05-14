@@ -24,10 +24,10 @@ spec:
   chartContent: $(base64 -w0 < "${CHART_TMP}")
 EOF
 
-if [[ -f "extra-${CHART_FILE}" ]]; then
-  envsubst < "extra-${CHART_FILE}" >> "${CHART_FILE}"
+if [[ -f "${CHART_FILE}-extra" ]]; then
+  envsubst << "${CHART_FILE}-extra" >> "${CHART_FILE}"
 else
-  cat <<-EOF > "${CHART_FILE}"
+  cat <<-EOF >> "${CHART_FILE}"
   valuesContent: |-
     image:
       tag: ${CHART_TAG}

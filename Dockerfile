@@ -204,7 +204,7 @@ RUN CHART_VERSION=${METRICS_SERVER_CHART_VERSION}                CHART_TAG=${MET
 RUN CHART_VERSION=${MULTUS_CHART_VERSION}                        CHART_TAG=${MULTUS_VERSION}           CHART_TAG_CNI_PLUGIN=${CNI_PLUGIN_VERSION}                   CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN CHART_VERSION=${VSPHERE_CPI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CPI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-cpi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
 RUN CHART_VERSION=${VSPHERE_CSI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CSI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
-RUN rm -vf /charts/*.sh /charts/*.md
+RUN rm -vf /charts/*.sh /charts/*.md /charts/*.yaml-extra
 
 #build containerd
 FROM build AS containerd-builder
