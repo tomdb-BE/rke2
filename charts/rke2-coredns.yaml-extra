@@ -1,7 +1,8 @@
   valuesContent: |-    
     image:
       tag: ${CHART_TAG}
-      repository: ${REPO}
+      repository: ${REPO}/hardened-coredns
     autoscaler:
       image:
-        repository: k8s.gcr.io/cluster-proportional-autoscaler-${CHART_TAG_ARCH}
+        tag: ${CHART_TAG}
+        repository: ${REPO}/hardened-cluster-autoscaler
