@@ -32,8 +32,8 @@ VERSION=${VERSION:-v1.21.4+rke2r2}
 REVISION=$(git rev-parse HEAD)$(if ! git diff --no-ext-diff --quiet --exit-code; then echo .dirty; fi)
 PLATFORM=${GOOS}-${GOARCH}
 RELEASE=${PROG}.${PLATFORM}
-
-if [ -z "$IMAGE_BUILD_VERSION" ]; then IMAGE_BUILD_VERSION=build$(date +%Y%m%d); fi
+echo $IMAGE_BUILD_VERSION
+if [ -z "${IMAGE_BUILD_VERSION}" ]; then IMAGE_BUILD_VERSION=build$(date +%Y%m%d); fi
 
 K3S_VERSION=${K3S_VERSION:-"v1.21.4-k3s1"}
 CONTAINERD_VERSION=${CONTAINERD_VERSION:-"v1.5.5-k3s1"}
