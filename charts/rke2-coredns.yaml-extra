@@ -1,0 +1,7 @@
+  valuesContent: |-    
+    image:
+      tag: ${CHART_TAG}
+      repository: ${REPO}
+    autoscaler:
+      image:
+        repository: k8s.gcr.io/cluster-proportional-autoscaler-${CHART_TAG_ARCH}

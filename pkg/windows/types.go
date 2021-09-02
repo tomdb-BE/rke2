@@ -11,8 +11,8 @@ import (
 )
 
 type CNI interface {
-	Setup(context.Context, string, *daemonconfig.Node, *rest.Config) (*CNIConfig, error)
-	Start(context.Context, *CNIConfig) error
+	Setup(ctx context.Context, dataDir string, nodeConfig *daemonconfig.Node, restConfig *rest.Config) (*CNIConfig, error)
+	Start(config *CNIConfig) error
 }
 
 type CNIConfig struct {

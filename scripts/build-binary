@@ -13,7 +13,6 @@ else
     DEBUG_GO_GCFLAGS='-gcflags=all=-N -l'
 fi
 
-REVISION=$(git rev-parse HEAD)$(if ! git diff --no-ext-diff --quiet --exit-code; then echo .dirty; fi)
 RELEASE=${PROG}.${GOOS}-${GOARCH}
 
 BUILDTAGS="selinux netgo osusergo no_stage static_build sqlite_omit_load_extension"
@@ -24,11 +23,11 @@ VERSION_FLAGS="
         -X ${K3S_PKG}/pkg/version.Program=${PROG}
         -X ${K3S_PKG}/pkg/version.Version=${VERSION}
         -X ${RKE2_PKG}/pkg/images.DefaultRegistry=${REGISTRY}
-        -X ${RKE2_PKG}/pkg/images.DefaultEtcdImage=rancher/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
-        -X ${RKE2_PKG}/pkg/images.DefaultKubernetesImage=rancher/hardened-kubernetes:${KUBERNETES_IMAGE_TAG}
-        -X ${RKE2_PKG}/pkg/images.DefaultPauseImage=rancher/pause:${PAUSE_VERSION}
-        -X ${RKE2_PKG}/pkg/images.DefaultRuntimeImage=${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
-        -X ${RKE2_PKG}/pkg/images.DefaultCloudControllerManagerImage=rancher/rke2-cloud-provider:${CCM_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultEtcdImage=${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultKubernetesImage=${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG}-${IMAGE_BUILD_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultPauseImage=${REPO}/pause:${PAUSE_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultRuntimeImage=${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultCloudControllerManagerImage=${REPO}/rke2-cloud-provider:${CCM_VERSION}-${IMAGE_BUILD_VERSION}
 "
 
 #STATIC_FLAGS='-extldflags "-static -Wl,--fatal-warnings"'
@@ -56,5 +55,5 @@ fi
 
 # assert that rke2 is linked to goboring
 if type -a go-assert-boring.sh >/dev/null 2>&1; then
-    go-assert-boring.sh bin/${PROG}
+    echo "Skipping for arm64"
 fi

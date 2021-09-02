@@ -1,0 +1,9 @@
+  valuesContent: |-  
+    controller:
+      image:
+        tag: ${CHART_TAG}
+        repository: ${REPO}
+    defaultBackend:
+      image:
+        tag: ${CHART_TAG_BACKEND}
+        repository: ${REPO}-default-backend

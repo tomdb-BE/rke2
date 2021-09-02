@@ -145,24 +145,15 @@ func (p *PEBinaryConfig) Kubelet(args []string) error {
 	logrus.Infof("Running RKE2 kubelet %v", cleanArgs)
 	go func() {
 		for {
-			ctx, cancel := context.WithCancel(context.Background())
-			go func() {
-				if err := p.cni.Start(ctx, p.cniConig); err != nil {
-					logrus.Errorf("error in cni start: %s", err)
-				}
-			}()
-
 			cmd := exec.Command(p.KubeletPath, cleanArgs...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				logrus.Errorf("Kubelet exited: %v", err)
-			}
-			cancel()
+			err := cmd.Run()
+			logrus.Errorf("Kubelet exited: %v", err)
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	return nil
+	return p.cni.Start(p.cniConig)
 }
 
 // KubeProxy starts the kubeproxy in a subprocess with watching goroutine.
@@ -182,14 +173,13 @@ func (p *PEBinaryConfig) KubeProxy(args []string) error {
 		extraArgs["enable-dsr"] = "true"
 	}
 
-	var vip string
 	for range time.Tick(time.Second * 5) {
 		endpoint, err := hcsshim.GetHNSEndpointByName("Calico_ep")
 		if err != nil {
 			logrus.WithError(err).Warningf("can't find %s, retrying", "Calico_ep")
 			continue
 		}
-		vip = endpoint.IPAddress.String()
+		extraArgs["source-vip"] = endpoint.IPAddress.String()
 		break
 	}
 
@@ -200,13 +190,6 @@ func (p *PEBinaryConfig) KubeProxy(args []string) error {
 	}
 
 	args = append(getArgs(extraArgs), args...)
-
-	for i, arg := range args {
-		if strings.Contains(arg, "source-vip") {
-			args[i] = "--source-vip=" + vip
-		}
-	}
-
 	logrus.Infof("Running RKE2 kube-proxy %s", args)
 	go func() {
 		for {

@@ -1,4 +1,10 @@
 ARG KUBERNETES_VERSION=dev
+ARG K3S_VERSION
+ARG KUBERNETES_IMAGE_TAG
+ARG CONTAINERD_VERSION
+ARG CRICTL_VERSION
+ARG RUNC_VERSION
+
 # Build environment
 FROM rancher/hardened-build-base:v1.16.6b7 AS build
 RUN set -x \
@@ -9,9 +15,9 @@ RUN set -x \
     git \
     libseccomp-dev \
     rsync \
-    mingw-w64-gcc \
     gcc \
     bsd-compat-headers \
+    binutils-gold \
     py-pip \
     pigz
 
@@ -43,17 +49,17 @@ RUN set -x \
     jq \
     python2
 RUN GOCR_VERSION="v0.5.1" && \
-        if [ "${ARCH}" = "arm64" ]; then \
-        wget https://github.com/google/go-containerregistry/releases/download/${GOCR_VERSION}/go-containerregistry_Linux_arm64.tar.gz && \
-        tar -zxvf go-containerregistry_Linux_arm64.tar.gz && \
-        mv crane /usr/local/bin && \
-        chmod a+x /usr/local/bin/crane; \
-        else \
-        wget https://github.com/google/go-containerregistry/releases/download/${GOCR_VERSION}/go-containerregistry_Linux_x86_64.tar.gz && \
-        tar -zxvf go-containerregistry_Linux_x86_64.tar.gz && \
-        mv crane /usr/local/bin && \
-        chmod a+x /usr/local/bin/crane; \
-        fi
+    if [ "${ARCH}" = "arm64" ]; then \
+    wget https://github.com/google/go-containerregistry/releases/download/${GOCR_VERSION}/go-containerregistry_Linux_arm64.tar.gz && \
+    tar -zxvf go-containerregistry_Linux_arm64.tar.gz && \
+    mv crane /usr/local/bin && \
+    chmod a+x /usr/local/bin/crane; \
+    else \
+    wget https://github.com/google/go-containerregistry/releases/download/${GOCR_VERSION}/go-containerregistry_Linux_x86_64.tar.gz && \
+    tar -zxvf go-containerregistry_Linux_x86_64.tar.gz && \
+    mv crane /usr/local/bin && \
+    chmod a+x /usr/local/bin/crane; \
+    fi
 
 RUN VERSION=0.16.0 && \
     if [ "${ARCH}" = "arm64" ]; then \
@@ -91,31 +97,61 @@ VOLUME /var/lib/rancher/k3s
 FROM build AS charts
 ARG CHART_REPO="https://rke2-charts.rancher.io"
 ARG CACHEBUST="cachebust"
+ARG CILIUM_VERSION
+ARG CILIUM_STARTUP_SCRIPT_VERSION
+ARG CALICO_VERSION
+ARG CALICO_CRD_VERSION
+ARG FLANNEL_VERSION
+ARG COREDNS_VERSION
+ARG CHART_TAG_ARCH
+ARG NGINX_INGRESS_VERSION
+ARG NGINX_INGRESS_DEFAULT_BACKEND_VERSION
+ARG KUBE_PROXY_VERSION
+ARG METRICS_SERVER_VERSION
+ARG MULTUS_VERSION
+ARG CNI_PLUGINS_VERSION
+ARG VSPHERE_CPI_VERSION
+ARG VSPHERE_CSI_VERSION
+ARG CILIUM_CHART_VERSION
+ARG CANAL_CHART_VERSION
+ARG CALICO_CHART_VERSION
+ARG CALICO_CRD_CHART_VERSION
+ARG COREDNS_CHART_VERSION
+ARG NGINX_INGRESS_CHART_VERSION
+ARG KUBE_PROXY_CHART_VERSION
+ARG KUBE_PROXY_CHART_PACKAGE_VERSION
+ARG METRICS_SERVER_CHART_VERSION
+ARG MULTUS_CHART_VERSION
+ARG VSPHERE_CPI_CHART_VERSION
+ARG VSPHERE_CSI_CHART_VERSION
+ARG REPO
+ARG ARCH
+
+RUN apk add --no-cache gettext
 COPY charts/ /charts/
 RUN echo ${CACHEBUST}>/dev/null
-RUN CHART_VERSION="1.9.809"                   CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v3.19.1-build2021061107"   CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v3.19.2-203"               CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v1.0.101"                  CHART_FILE=/charts/rke2-calico-crd.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="1.16.201-build2021072308"  CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="3.34.003"                  CHART_FILE=/charts/rke2-ingress-nginx.yaml  CHART_BOOTSTRAP=false  /charts/build-chart.sh
-RUN CHART_VERSION="v1.21.3-rke2r2-build2021080901" \
-    CHART_PACKAGE="rke2-kube-proxy-1.21"      CHART_FILE=/charts/rke2-kube-proxy.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="2.11.100-build2021022302"  CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
-RUN CHART_VERSION="v3.7.1-build2021041604"    CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="1.0.000"                   CHART_FILE=/charts/rancher-vsphere-cpi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
-RUN CHART_VERSION="2.1.000"                   CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
-RUN rm -vf /charts/*.sh /charts/*.md
+RUN REPO=${REPO}/mirrored-cilium CHART_VERSION=${CILIUM_CHART_VERSION}                        CHART_TAG=${CILIUM_VERSION}           CHART_TAG_STARTUP=${CILIUM_STARTUP_SCRIPT_VERSION}           CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO} CHART_VERSION=${CANAL_CHART_VERSION}                         CHART_TAG=${CALICO_VERSION}           CHART_TAG_FLANNEL=${FLANNEL_VERSION}                         CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}/hardened-calico CHART_VERSION=${CALICO_CHART_VERSION}                        CHART_TAG=${CALICO_VERSION}                                                                        CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO} CHART_VERSION=${CALICO_CRD_CHART_VERSION}                    CHART_TAG=${CALICO_CRD_VERSION}                                                                    CHART_FILE=/charts/rke2-calico-crd.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}/hardened-coredns CHART_VERSION=${COREDNS_CHART_VERSION}                       CHART_TAG=${COREDNS_VERSION}          CHART_TAG_ARCH=${ARCH}                                       CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}/nginx-ingress-controller CHART_VERSION=${NGINX_INGRESS_CHART_VERSION}                 CHART_TAG=${NGINX_INGRESS_VERSION}    CHART_TAG_BACKEND=${NGINX_INGRESS_DEFAULT_BACKEND_VERSION}   CHART_FILE=/charts/rke2-ingress-nginx.yaml  CHART_BOOTSTRAP=false  /charts/build-chart.sh
+RUN REPO=${REPO}/hardened-kube-proxy CHART_VERSION=${KUBE_PROXY_CHART_VERSION}			 CHART_PACKAGE=${KUBE_PROXY_CHART_PACKAGE_VERSION}              CHART_TAG=${KUBE_PROXY_VERSION}    CHART_FILE=/charts/rke2-kube-proxy.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}/hardened-k8s-metrics-server CHART_VERSION=${METRICS_SERVER_CHART_VERSION}                CHART_TAG=${METRICS_SERVER_VERSION}                                                                CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
+RUN REPO=${REPO}/hardended-multus-cni CHART_VERSION=${MULTUS_CHART_VERSION}                        CHART_TAG=${MULTUS_VERSION}           CHART_TAG_CNI_PLUGIN=${CNI_PLUGINS_VERSION}                  CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}/mirrored-cloud-provider-vsphere-cpi-release-manager CHART_VERSION=${VSPHERE_CPI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CPI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-cpi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
+RUN REPO=${REPO}/mirrored-cloud-provider-vsphere-csi-release-driver CHART_VERSION=${VSPHERE_CSI_CHART_VERSION}                   CHART_TAG=${VSPHERE_CSI_VERSION}                                                                   CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   CHART_REPO="https://charts.rancher.io" /charts/build-chart.sh
+RUN rm -vf /charts/*.sh /charts/*.md /charts/*.yaml-extra
 
 # rke-runtime image
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
-FROM rancher/k3s:v1.21.3-k3s1 AS k3s
-FROM rancher/hardened-kubernetes:v1.21.3-rke2r2-build20210809 AS kubernetes
-FROM rancher/hardened-containerd:v1.4.8-k3s1-build20210721 AS containerd
-FROM rancher/hardened-crictl:v1.19.0-build20210223 AS crictl
-FROM rancher/hardened-runc:v1.0.0-build20210708 AS runc
+FROM rancher/k3s:${K3S_VERSION} AS k3s
+FROM rancher/hardened-kubernetes:${KUBERNETES_IMAGE_TAG} AS kubernetes
+FROM rancher/hardened-containerd:${CONTAINERD_VERSION} AS containerd
+FROM rancher/hardened-crictl:${CRICTL_VERSION} AS crictl
+FROM rancher/hardened-runc:${RUNC_VERSION} AS runc
 
 FROM scratch AS runtime-collect
 COPY --from=k3s \
@@ -143,10 +179,12 @@ COPY --from=charts \
     /charts/
 
 FROM scratch AS runtime
+ENV ETCD_UNSUPPORTED_ARCH=arm64
 COPY --from=runtime-collect / /
 
 FROM ubuntu:18.04 AS test
 ARG TARGETARCH
+ENV ETCD_UNSUPPORTED_ARCH=arm64
 VOLUME /var/lib/rancher/rke2
 VOLUME /var/lib/kubelet
 VOLUME /var/lib/cni

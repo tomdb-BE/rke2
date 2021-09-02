@@ -94,6 +94,15 @@ The NetworkPolicy used will only allow pods within the same namespace to talk to
 ## Known Issues
 The following are controls that RKE2 currently does not pass. Each gap will be explained and whether it can be passed through manual operator intervention or if it will be addressed in a future release.
 
+### Control 3.2.1
+Ensure that a minimal audit policy is created (Scored)
+<details>
+<summary>Rationale</summary>
+Logging is an important detective control for all systems, to detect potential unauthorised access.
+</details>
+
+RKE2 supports configuring audit logging by passing `--profile=cis-1.5`. It enables a default policy which doesn't log anything. To configure a customize policy, you should pass the `--audit-policy-file` argument to the RKE2 server process. This argument specifies the path for audit logging policy configuration. For more information about the logging policy, you can checkout the [official docs](https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#audit-policy).
+
 ## Conclusion
 
 If you have followed this guide, your RKE2 cluster will be configured to pass the CIS Kubernetes Benchmark. You can review our CIS Benchmark Self-Assessment Guide [v1.5](cis_self_assessment15.md) or [v1.6](cis_self_assessment16.md) to understand how we verified each of the benchmarks and how you can do the same on your cluster.

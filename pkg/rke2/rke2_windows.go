@@ -18,6 +18,11 @@ import (
 )
 
 func initExecutor(clx *cli.Context, cfg Config, dataDir string, disableETCD bool, isServer bool) (*pebinaryexecutor.PEBinaryConfig, error) {
+	auditPolicyFile := clx.String("audit-policy-file")
+	if auditPolicyFile == "" {
+		auditPolicyFile = defaultAuditPolicyFile
+	}
+
 	// This flag will only be set on servers, on agents this is a no-op and the
 	// resolver's default registry will get updated later when bootstrapping
 	cfg.Images.SystemDefaultRegistry = clx.String("system-default-registry")
@@ -63,7 +68,7 @@ func initExecutor(clx *cli.Context, cfg Config, dataDir string, disableETCD bool
 		CISMode:         isCISMode(clx),
 		CloudProvider:   cpConfig,
 		DataDir:         dataDir,
-		AuditPolicyFile: clx.String("audit-policy-file"),
+		AuditPolicyFile: auditPolicyFile,
 		KubeletPath:     cfg.KubeletPath,
 		DisableETCD:     disableETCD,
 		IsServer:        isServer,

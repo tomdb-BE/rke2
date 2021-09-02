@@ -1,0 +1,15 @@
+  valuesContent: |-  
+    flannel:
+      image: 
+        tag: ${CHART_TAG_FLANNEL}
+        repository: ${REPO}/hardened-flannel
+    calico:
+      cniImage:
+        tag: ${CHART_TAG}
+        repository: ${REPO}/hardened-calico
+      nodeImage:
+        tag: ${CHART_TAG}
+        repository: ${REPO}/hardened-calico
+      flexvolImage:
+        tag: ${CHART_TAG}
+        repository: ${REPO}/hardened-calico

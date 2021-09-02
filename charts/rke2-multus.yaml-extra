@@ -1,0 +1,9 @@
+  valuesContent: |-  
+    multus:
+      image:
+        tag: ${CHART_TAG}
+        repository: ${REPO}/hardened-multus-cni
+    cniplugins:
+      image:
+        tag: ${CHART_TAG_CNI_PLUGIN}
+        repository: ${REPO}/hardened-cni-plugins
