@@ -44,13 +44,13 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg VSPHERE_CPI_VERSION=${VSPHERE_CPI_VERSION} \
     --build-arg VSPHERE_CSI_VERSION=${VSPHERE_CSI_VERSION} \
     --build-arg REPO=${REPO} \
-    --tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION} \
-    --tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}-${GOOS}-${GOARCH} \
+    --tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION} \
+    --tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${GOOS}-${GOARCH} \
     --target runtime \
     --file Dockerfile \
     .
 
-if [ "${ARCH}" = "xxx" ]; then
+if [ "${ARCH}" = "amd64" ]; then
 DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1} docker image build \
     --build-arg TAG=${VERSION} \
     --build-arg KUBERNETES_VERSION=${KUBERNETES_VERSION} \
@@ -66,4 +66,4 @@ fi
 mkdir -p build/images
 docker image save \
     --output build/images/${PROG}-runtime.tar \
-    ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}-${GOOS}-${GOARCH}
+    ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${GOOS}-${GOARCH}

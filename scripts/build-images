@@ -7,11 +7,11 @@ source ./scripts/version.sh
 
 ./scripts/build-image-runtime
 
-docker tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION} ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}
-docker tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}-linux-${ARCH} ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}-linux-${ARCH}
+docker tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION} ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}
+docker tag ${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION} ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}-linux-${ARCH}
 
 awk '{print $1}' << EOF > build/images-core.txt
-    ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
