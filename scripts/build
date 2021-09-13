@@ -6,10 +6,10 @@ cd $(dirname $0)/..
 source ./scripts/version.sh
 mkdir -p build/images
 ./scripts/build-binary
-./scripts/build-windows-binary
+if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-binary; fi
 ./scripts/build-images
-./scripts/build-windows-images
+if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-images; fi
 ./scripts/package-bundle
-./scripts/package-windows-bundle
+if [ "${ARCH}" = "amd64" ]; then ./scripts/package-windows-bundle; fi
 ./scripts/dev-runtime-image
 ./scripts/build-image-test
