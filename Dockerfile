@@ -4,6 +4,7 @@ ARG KUBERNETES_IMAGE_TAG
 ARG CONTAINERD_VERSION
 ARG CRICTL_VERSION
 ARG RUNC_VERSION
+ARG REPO
 
 # Build environment
 FROM rancher/hardened-build-base:v1.16.6b7 AS build
@@ -146,11 +147,11 @@ RUN rm -vf /charts/*.sh /charts/*.md /charts/*.yaml-extra
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
-FROM rancher/k3s:${K3S_VERSION} AS k3s
-FROM rancher/hardened-kubernetes:${KUBERNETES_IMAGE_TAG} AS kubernetes
-FROM rancher/hardened-containerd:${CONTAINERD_VERSION} AS containerd
-FROM rancher/hardened-crictl:${CRICTL_VERSION} AS crictl
-FROM rancher/hardened-runc:${RUNC_VERSION} AS runc
+FROM ${REPO}/k3s:${K3S_VERSION} AS k3s
+FROM ${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG} AS kubernetes
+FROM ${REPO}/hardened-containerd:${CONTAINERD_VERSION} AS containerd
+FROM ${REPO}/hardened-crictl:${CRICTL_VERSION} AS crictl
+FROM ${REPO}/hardened-runc:${RUNC_VERSION} AS runc
 
 FROM scratch AS runtime-collect
 COPY --from=k3s \
