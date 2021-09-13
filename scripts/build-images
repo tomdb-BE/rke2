@@ -19,10 +19,10 @@ xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
     ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/klipper-helm:${KLIPPER_HELM_VERSION}
+    ${REGISTRY}/${REPO}/klipper-helm:${KLIPPER_HELM_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/pause:${PAUSE_VERSION}
     ${REGISTRY}/${REPO}/mirrored-jettech-kube-webhook-certgen:${JETTECH_VERSION}
-    ${REGISTRY}/${REPO}/nginx-ingress-controller:${NGINX_INGRESS_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/nginx-ingress-controller:${NGINX_INGRESS_VERSION}
     ${REGISTRY}/${REPO}/rke2-cloud-provider:${CCM_VERSION}-${IMAGE_BUILD_VERSION}
 EOF
 
