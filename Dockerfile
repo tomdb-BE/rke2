@@ -31,6 +31,9 @@ ENV DAPPER_OUTPUT ./dist ./bin ./build
 ENV DAPPER_DOCKER_SOCKET true
 ENV DAPPER_TARGET dapper
 ENV DAPPER_RUN_ARGS "--privileged --network host -v /tmp:/tmp -v rke2-pkg:/go/pkg -v rke2-cache:/root/.cache/go-build -v trivy-cache:/root/.cache/trivy"
+RUN if [ "${ARCH}" = "amd64" ]; then \
+    apk add --no-cache mingw-w64-gcc; \
+    fi
 RUN if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then \
     VERSION=0.50.0 OS=linux && \
     curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
