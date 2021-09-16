@@ -1,3 +1,45 @@
+# RKE2 Multiarch
+This is an EXPERIMENTAL fork of Rancher's RKE2 adding arm64 support for testing/lab use.
+
+WARNING: Use at own risk. Builds and releases are not supported by Rancher nor author.
+
+Supporting (hardened) images source can be found in their respective repository within this organization.
+Same source can be used to build for amd64 as well. Currently, cross compile is not available. A RPI4B is capable of building all packages and images (ensure sufficient storage and swap is available)
+
+Most significant changes compared with master:
+
+- All hardened supporting images (kubernetes, etcd, sriov, calico,..) and mirrored images are available for arm64 except vSphere related mirrored images. Those are skipped during image building on arm64 only.
+- Boring assertion is skipped in all supporting hardened images as currently not working for arm64 architecture. When building for amd64, boring assertion is not skipped.
+- Hardened images ubi7 base image has been replaced with centos:7 as ubi 7 does not support arm64. Ubi8 does, to be investigated as missing some packages (e.g. conntrack).
+- Extended the available versioning variables in scripts/version and main Dockerfile to facilitate building future releases of rke2 and supporting components.
+
+Current state: initial/superficial testing succesful in mixed linux-amd64/linux-arm64 (RPI4B-4GB) three node cluster (k8s - etcd - canal - metrics - kubeproxy - coredns) on RPI4B 4GB RAM.
+
+List of arm64 adapted images and source code (multiarch branch):
+
+[kubernetes]https://github.com/tomdb-be/image-build-kubernetes
+[containerd]https://github.com/tomdb-be/image-build-containerd
+[runc]https://github.com/tomdb-be/image-build-runc
+[crictl]https://github.com/tomdb-be/image-build-crictl
+[coredns]https://github.com/tomdb-be/image-build-coredns
+[metrics server]https://github.com/tomdb-be/image-build-k8s-metrics-server
+[etcd]https://github.com/tomdb-be/image-build-etcd
+[rke2-cloud-provider]https://github.com/tomdb-be/image-build-rke2-cloud-provider
+[kube-proxy]https://github.com/tomdb-be/image-build-kube-proxy
+[calico]https://github.com/tomdb-be/image-build-calico
+[flannel]https://github.com/tomdb-be/image-build-flannel
+[cni-plugins]https://github.com/tomdb-be/image-build-cni-plugins
+[multus]https://github.com/tomdb-be/image-build-multus
+[sriov-ib-cni]https://github.com/tomdb-be/image-build-ib-sriov-cni
+[sriov-cni]https://github.com/tomdb-be/image-build-sriov-cni
+[sriov-network-resource-injector]https://github.com/tomdb-be/image-build-sriov-network-resources-injector
+[sriov-network-device-plugin]https://github.com/tomdb-be/image-build-sriov-network-device-plugin
+[sriov-operator]https://github.com/tomdb-be/image-build-sriov-operator
+[ingress-nginx]https://github.com/tomdb-be/nginx-ingress
+[klipper-helm]https://github.com/tomdb-be/klipper-helm
+[build-base]https://github.com/tomdb-be/image-build-base
+
+
 # RKE2
 ![RKE2](docs/assets/logo-horizontal-rke.svg)
 

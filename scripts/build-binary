@@ -26,7 +26,7 @@ VERSION_FLAGS="
         -X ${RKE2_PKG}/pkg/images.DefaultEtcdImage=${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
         -X ${RKE2_PKG}/pkg/images.DefaultKubernetesImage=${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG}-${IMAGE_BUILD_VERSION}
         -X ${RKE2_PKG}/pkg/images.DefaultPauseImage=${REPO}/pause:${PAUSE_VERSION}
-        -X ${RKE2_PKG}/pkg/images.DefaultRuntimeImage=${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-${IMAGE_BUILD_VERSION}
+        -X ${RKE2_PKG}/pkg/images.DefaultRuntimeImage=${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
         -X ${RKE2_PKG}/pkg/images.DefaultCloudControllerManagerImage=${REPO}/rke2-cloud-provider:${CCM_VERSION}-${IMAGE_BUILD_VERSION}
 "
 
