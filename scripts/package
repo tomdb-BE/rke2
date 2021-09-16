@@ -8,6 +8,6 @@ source ./scripts/version.sh
 mkdir -p dist/{artifacts,bundle}
 
 ./scripts/package-binary
-./scripts/package-windows-binary
+if [ "${ARCH}" = "amd64" ]; then ./scripts/package-windows-binary; fi
 ./scripts/package-bundle
-./scripts/package-windows-bundle
+if [ "${ARCH}" = "amd64" ]; then ./scripts/package-windows-bundle; fi
