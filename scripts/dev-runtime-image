@@ -10,6 +10,7 @@ docker image save \
   zstd -T0 -16 -f --long=25 --no-progress - -o build/images/${PROG}-images.${PLATFORM}.tar.zst
 ./scripts/build-upload dist/artifacts/${RELEASE}.tar.gz build/images/${PROG}-images.${PLATFORM}.tar.zst ${COMMIT}
 
+if [ "${ARCH}" = "amd64" ]; then
 # retag windows for saving image runtime zst
 docker tag ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}-windows-${ARCH} \
   ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION}
@@ -17,3 +18,4 @@ docker image save \
   ${REGISTRY}/${REPO}/${PROG}-runtime:${DOCKERIZED_VERSION} | \
   zstd -T0 -16 -f --long=25 --no-progress - -o build/images/${PROG}-images.windows-${ARCH}.tar.zst
 ./scripts/build-upload dist/artifacts/${PROG}.windows-${ARCH}.tar.gz build/images/${PROG}-images.windows-${ARCH}.tar.zst ${COMMIT}
+fi
