@@ -1,0 +1,13 @@
+  valuesContent: |-
+    installation:
+      imagePath: ${REPO}
+    tigera-operator:
+      image: ${REPO}/mirrored-calico-operator:${CHART_TAG_OPERATOR}
+    tigeraOperator:
+      image: ${REPO}/mirrored-calico-operator
+      version: ${CHART_TAG_OPERATOR}
+      registry: docker.io
+    calicoctl:
+      image: ${REPO}/mirrored-calico-ctl
+      tag: ${CHART_TAG}
+
