@@ -26,7 +26,7 @@ if [[ -f "${CHART_FILE}-extra" ]]; then
 else
 cat <<-EOF >> "${CHART_FILE}"
   valuesContent: |-
-    image: 
+    image:
       tag: ${CHART_TAG}
       repository: ${REPO}
 EOF
