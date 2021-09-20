@@ -10,6 +10,10 @@ if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-binary; fi
 ./scripts/build-images
 if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-images; fi
 ./scripts/package-bundle
-if [ "${ARCH}" = "amd64" ]; then ./scripts/package-windows-bundle; fi
+./scripts/package-images
+if [ "${ARCH}" = "amd64" ]; then
+    ./scripts/package-windows-bundle
+    ./scripts/package-windows-images
+fi
 ./scripts/dev-runtime-image
 ./scripts/build-image-test
