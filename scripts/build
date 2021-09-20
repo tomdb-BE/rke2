@@ -8,12 +8,7 @@ mkdir -p build/images
 ./scripts/build-binary
 if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-binary; fi
 ./scripts/build-images
-if [ "${ARCH}" = "amd64" ]; then ./scripts/build-windows-images; fi
 ./scripts/package-bundle
-./scripts/package-images
-if [ "${ARCH}" = "amd64" ]; then
-    ./scripts/package-windows-bundle
-    ./scripts/package-windows-images
-fi
+if [ "${ARCH}" = "amd64" ]; then ./scripts/package-windows-bundle; fi
 ./scripts/dev-runtime-image
 ./scripts/build-image-test
