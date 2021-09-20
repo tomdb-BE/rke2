@@ -1,17 +1,17 @@
-  valuesContent: |-  
-    cilium:  
-      image: 
-        tag: ${CHART_TAG}
-        repository: ${REPO}-cilium
-    operator:
-      image:
-        tag: ${CHART_TAG}
-        repository: ${REPO}-operator-generic
-    nodeinit:
-      image:
-        tag: ${CHART_TAG_STARTUP}
-        repository: ${REPO}-startup-script
-    preflight:
+  valuesContent: |-
+    cilium:
       image:
         tag: ${CHART_TAG}
         repository: ${REPO}-cilium
+      operator:
+        image:
+          tag: ${CHART_TAG}
+          repository: ${REPO}-operator-generic
+      nodeinit:
+        image:
+          tag: ${CHART_TAG_STARTUP}
+          repository: ${REPO}-startup-script
+      preflight:
+        image:
+          tag: ${CHART_TAG}
+          repository: ${REPO}-cilium
