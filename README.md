@@ -1,19 +1,22 @@
 # RKE2 Multiarch
+
 This is an EXPERIMENTAL fork of Rancher's RKE2 adding arm64 support for testing/lab use.
 
 WARNING: Use at own risk. Builds and releases are not supported by Rancher nor author.
 
-Supporting (hardened) images source can be found in their respective repository within this organization.
-Same source can be used to build for amd64 as well. Currently, cross compile is not available. A RPI4B is capable of building all packages and images (ensure sufficient storage and swap is available)
 
-Most significant changes compared with master:
+Supporting (hardened) images source can be found in their respective repository within this organization. (see list below)
+Same source can be used to build for amd64 (linux-windows) as well. Currently, cross compile is not available. A RPI4B is capable of building all packages and images (ensure sufficient storage and swap is available)
 
-- All hardened supporting images (kubernetes, etcd, sriov, calico,..) and mirrored images are available for arm64 except vSphere related mirrored images. Those are skipped during image building on arm64 only.
-- Boring assertion is skipped in all supporting hardened images as currently not working for arm64 architecture. When building for amd64, boring assertion is not skipped.
-- Hardened images ubi7 base image has been replaced with centos:7 as ubi 7 does not support arm64. Ubi8 does, to be investigated as missing some packages (e.g. conntrack).
-- Extended the available versioning variables in scripts/version and main Dockerfile to facilitate building future releases of rke2 and supporting components.
+No changes have been made to the go source code.
 
-Current state: initial/superficial testing succesful in mixed linux-amd64/linux-arm64 (RPI4B-4GB) three node cluster (k8s - etcd - canal - metrics - kubeproxy - coredns) on RPI4B 4GB RAM.
+Notable changes in build scripts and Dockerfile:
+
+- Boring assertion is skipped when building for arm64 as currently not supported for this architecture.
+- Hardened images ubi7 base image has been replaced with centos:7 as ubi 7 does not support arm64.
+- Extended the available version variables in scripts/version and main Dockerfile to facilitate building future releases of rke2 and supporting components.
+- Charts referencing image manifests that don't include an arm64 image, will be merged with the rke2-<name>.yaml-extra in the charts folders. The supplied values allow referencing arm64 including manifests on a custom registry and or repo.
+- Building/packaging vSphere related images are skipped when building for arm64.
 
 ## List of arm64 adapted components (multiarch branch):
 
