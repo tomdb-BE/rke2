@@ -6,7 +6,7 @@
       operator:
         image:
           tag: ${CHART_TAG}
-          repository: ${REPO}-operator-generic
+          repository: ${REPO}-operator
       nodeinit:
         image:
           tag: ${CHART_TAG_STARTUP}
