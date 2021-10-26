@@ -25,7 +25,7 @@ Ensure `values.cni.cniBinDir=/opt/cni/bin` and `values.cni.cniConfDir=/etc/cni/n
 2. After the install is complete, there should be `cni-node` pods in a CrashLoopBackoff. Manually edit their daemonset to include `securityContext.privileged: true` on the `install-cni` container.
 
 This can be performed via a custom overlay as follows:
-```yaml:
+```yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -48,7 +48,7 @@ spec:
       - kube-system
       logLevel: info
       cniBinDir: /opt/cni/bin
-      cniConfDir: /etc/cni/net.d  
+      cniConfDir: /etc/cni/net.d
 ```
 
 For more information regarding exact failures with detailed logs when not following these steps, please see [Issue 504](https://github.com/rancher/rke2/issues/504).
@@ -73,3 +73,13 @@ See:
 - [grub2 manual](https://www.gnu.org/software/grub/manual/grub/grub.html#linux)
 - [systemd manual](https://www.freedesktop.org/software/systemd/man/systemd.html#Kernel%20Command%20Line)
 - [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)
+
+
+## Calico with vxlan encapsulation
+
+Calico hits a kernel bug when using vxlan encapsulation and the checksum offloading of the vxlan interface is on.
+The issue is described in the [calico project](https://github.com/projectcalico/calico/issues/4865) and in
+[rke2 project](https://github.com/rancher/rke2/issues/1541). The workaround we are applying is disabling the checksum
+offloading by default by applying the value `ChecksumOffloadBroken=true` in the [calico helm chart](https://github.com/rancher/rke2-charts/blob/main/charts/rke2-calico/rke2-calico/v3.19.2-203/values.yaml#L51-L53).
+
+This issue has been observed in Ubuntu 18.04, Ubuntu 20.04 and openSUSE Leap 15.3

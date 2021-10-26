@@ -15,7 +15,7 @@
 .Parameter Version
     Version of rke2 to download from github.`
 .Parameter TarPrefix
-    Installation prefix when using the tar installation method.
+    Installation prefix when using the tar installation method. This needs to match the value of CATTLE_AGENT_BIN_PREFIX
     Default is C:/usr/local, unless C:/usr/local is read-only or has a dedicated mount point,
     in which case C:/opt/rke2 is used instead.`
 .Parameter Commit
@@ -23,7 +23,7 @@
     If set, this forces Method=tar.
     * (for developer & QA use only)`
 .Parameter AgentImagesDir
-    Installation path for airgap images when installing from CI commit
+    Installation path for airgap images when installing from CI commit.
     Default is C:/var/lib/rancher/rke2/agent/images`
 .Parameter ArtifactPath
     If set, the install script will use the local path for sourcing the rke2.windows-$SUFFIX and sha256sum-$ARCH.txt files
@@ -40,10 +40,10 @@
 .EXAMPLE
   Usage:
     Invoke-WebRequest ((New-Object System.Net.WebClient).DownloadString('https://github.com/rancher/rke2/blob/master/install.ps1'))
-    ./install.ps1 -Channel Latest -Mehtod Tar
+    ./install.ps1 -Channel Latest -Method Tar
 #>
 
-    [CmdletBinding()]
+[CmdletBinding()]
 param (
     [Parameter()]
     [String]
@@ -61,13 +61,13 @@ param (
     $Version,
     [Parameter()]
     [String]
-    $TarPrefix = "C:\usr\local",
+    $TarPrefix = "C:/usr/local",
     [Parameter()]
     [Switch]
     $Commit,
     [Parameter()]
     [String]
-    $AgentImagesDir = "C:\var\lib\rancher\rke2\agent\images",
+    $AgentImagesDir = "C:/var/lib/rancher/rke2/agent/images",
     [Parameter()]
     [String]
     $ArtifactPath = "",
@@ -76,6 +76,7 @@ param (
     $ChannelUrl = "https://update.rke2.io/v1-release/channels"
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Write-InfoLog() {
@@ -86,34 +87,40 @@ function Write-WarnLog() {
     Write-Warn "[WARN] " "$@"
 }
 
+function Write-DebugLog() {
+    Write-Output "[DEBUG] $($args -join " ")"
+}
+
 # fatal logs the given argument at fatal log level.
 function Write-FatalLog() {
-    Write-Output "[ERROR] " "$@"
-    if ([string]::IsNullOrEmpty($SUFFIX)) {
-        Write-Fatal "[ALT] Please visit 'https://github.com/rancher/rke2/releases' directly and download the latest rke2.$SUFFIX.tar.gz"
+    Write-Output "[ERROR] $($args -join " ")"
+    if ([string]::IsNullOrEmpty($suffix)) {
+        $archInfo = Get-ArchitectureInfo
+        $suffix = $archInfo.Suffix
+        Write-Output "[ALT] Please visit 'https://github.com/rancher/rke2/releases' directly and download the latest rke2.$suffix.tar.gz"
     }
     exit 1
 }
 
 # setup_env defines needed environment variables.
-function Set-Environment()
-{
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [String]
-        $DefaultTarPrefix
-    )
+function Set-Environment() {
     # --- bail if we are not administrator ---
     $adminRole = [Security.Principal.WindowsBuiltInRole]::Administrator
     $currentRole = [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
-    If (-NOT $currentRole.IsInRole($adminRole))
-    {
+    if (-NOT $currentRole.IsInRole($adminRole)) {
         Write-FatalLog "You need to be administrator to perform this install"
+    }
+    if ($env:CATTLE_AGENT_BIN_PREFIX) {
+        $TarPrefix = $env:CATTLE_AGENT_BIN_PREFIX
+        [System.Environment]::SetEnvironmentVariable('CATTLE_AGENT_BIN_PREFIX', $TarPrefix, 'Machine')
+    }
+    else {
+        [System.Environment]::SetEnvironmentVariable('CATTLE_AGENT_BIN_PREFIX', $TarPrefix, 'Machine')
     }
 
     Write-Host "Using $($Channel) channel of rke2 for installation"
 }
+
 
 # check_method_conflict will exit with an error if the user attempts to install
 # via tar method on a host with existing chocolatey package.
@@ -130,33 +137,49 @@ function Test-MethodConflict() {
 # fatal if architecture not supported.
 function Get-ArchitectureInfo() {
     $arch = $env:PROCESSOR_ARCHITECTURE.ToLower()
-    if(-Not ($arch == "amd64")) {
+    if ("$arch" -ne "amd64") {
         Write-FatalLog "unsupported architecture $(env:PROCESSOR_ARCHITECTURE)"
         exit 1
     }
-    return @{ Suffix = "windows-$(env:ARCH)"; Arch = $arch}
+    return @{ Suffix = "windows-$arch"; Arch = "$arch" }
+}
+
+# get Windows Server Build Version
+function Get-BuildVersion() {
+    $BuildVersion = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name ReleaseId).ReleaseId
+    if ("$BuildVersion" -eq "2009") {
+        $BuildVersion = "20H2"
+    }
+    if ("$BuildVersion" -eq "1809" -or "2022" -or "2004" -or "20H2") {
+        Write-InfoLog "build version: $BuildVersion"
+        return $BuildVersion
+    }
+    else {
+        Write-FatalLog "unsupported build version $BuildVersion"
+        exit 1
+    }
 }
 
 # --- use desired rke2 version if defined or find version from channel ---
 function Get-ReleaseVersion() {
-	$version = ""
-	if (-Not $Commit) {
-		$version = "commit $($Commit)}"
-	}
-	elseif (-Not $Version) {
-		$version = $Version
-	}
-	else {
-		Write-InfoLog "finding release for channel $($Channel)"
-		$versionUrl = "$INSTALL_RKE2_CHANNEL_URL}/$INSTALL_RKE2_CHANNEL"
-		$result = [System.Net.HttpWebRequest]::Create($versionUrl).GetResponse().ResponseUri.Segments | Select-Object -Last 1 
-		$lastDot = $result.LastIndexOf('.')
-		$Version = $result.Substring(0, $lastDot)
-	}
+    if ($Commit) {
+        $Version = "commit $($Commit)"
+    }
+    elseif ($Version) {
+        $Version = $Version
+    }
+    else {
+        $versionUrl = "$ChannelUrl/$Channel"
+        $result = New-Object System.Uri($(curl.exe -w "%{url_effective}" -L -s -S $versionUrl -o "$TMP_DIR/version.html"))
+        $Version = $result.Segments | Select-Object -Last 1
+        Remove-Item -Path "$TMP_DIR/version.html" -Force
+    }
+    return $Version
 }
 
-# download_checksums downloads hash from github url.
-function Get-Checksums() {
+# download_checksums downloads the binary checksums from github or CI storage url
+# and prepares the checksum value for later validation.
+function Get-BinaryChecksums() {
     [CmdletBinding()]
     param (
         [Parameter()]
@@ -173,8 +196,8 @@ function Get-Checksums() {
         $Rke2GitHubUrl,
         [Parameter()]
         [String]
-        $TempChecksums
-    )    
+        $TempBinaryChecksums
+    )
 
     $archInfo = Get-ArchitectureInfo
     $suffix = $archInfo.Suffix    
@@ -190,10 +213,68 @@ function Get-Checksums() {
     Write-InfoLog "downloading checksums at $checksumsUrl"
     Invoke-RestMethod -Uri $checksumsUrl -OutFile $TempChecksums
     return Find-Checksum -ChecksumFilePath $TempChecksums -Pattern "rke2.$suffix.tar.gz"
+    $binaryChecksumsUrl = ""
+
+    if ($CommitHash) {
+        $binaryChecksumsUrl = "$StorageUrl/rke2.$suffix-$CommitHash.tar.gz.sha256sum"
+        Write-Host "downloading binary checksum for commit: $CommitHash at $binaryChecksumsUrl"
+        curl.exe -sfL $binaryChecksumsUrl -o $TempBinaryChecksums
+
+        return Find-Checksum -ChecksumFilePath $TempBinaryChecksums -Pattern "rke2.$suffix.tar.gz"
+    }
+    else {
+        $binaryChecksumsUrl = "$Rke2GitHubUrl/releases/download/$Rke2Version/sha256sum-$arch.txt"
+        Write-Host "downloading binary checksum from $binaryChecksumsUrl"
+        curl.exe -sfL $binaryChecksumsUrl -o $TempBinaryChecksums
+
+        return Find-Checksum -ChecksumFilePath $TempBinaryChecksums -Pattern "rke2.$suffix.tar.gz"
+    }
 }
 
-# download_tarball downloads binary from github url.
-function Get-Tarball() {
+# download_airgap_checksums downloads the checksum file for the airgap image tarball
+# and prepares the checksum value for later validation.
+function Get-ImageChecksums() {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $CommitHash,
+        [Parameter()]
+        [String]
+        $StorageUrl,
+        [Parameter()]
+        [String]
+        $Rke2Version,
+        [Parameter()]
+        [String]
+        $Rke2GitHubUrl,
+        [Parameter()]
+        [String]
+        $TempImageChecksums
+    )
+
+    $archInfo = Get-ArchitectureInfo
+    $suffix = $archInfo.Suffix
+    $arch = $archInfo.Arch
+    $imageChecksumsUrl = ""
+
+    if ($CommitHash) {
+        $imageChecksumsUrl = "$StorageUrl/rke2-images.$suffix-$CommitHash.tar.zst.sha256sum"
+        Write-Host "downloading image checksum for commit: $CommitHash at $imageChecksumsUrl"
+        curl.exe -sfL $imageChecksumsUrl -o $TempImageChecksums
+
+        return Find-Checksum -ChecksumFilePath $TempImageChecksums -Pattern "rke2-images.$suffix.tar.zst"
+    }
+    else {
+        $imageChecksumsUrl = "$Rke2GitHubUrl/releases/download/$Rke2Version/sha256sum-$arch.txt"
+        Write-Host "downloading image checksum from $imageChecksumsUrl"
+        curl.exe -sfL $imageChecksumsUrl -o $TempImageChecksums
+
+        return Find-Checksum -ChecksumFilePath $TempImageChecksums -Pattern "rke2-windows-$BuildVersion-$arch-images.tar.gz"
+    }
+}
+# download_tarball downloads binary from github or CI storage url.
+function Get-BinaryTarball() {
     [CmdletBinding()]
     param (
         [Parameter()]
@@ -217,21 +298,25 @@ function Get-Tarball() {
     $suffix = $archInfo.Suffix  
 
     $tarballUrl = ""
-    if (-Not $CommitHash) {
-        $tarballUrl = "$StorageUrl/rke2.$suffix$CommitHash.tar.gz"
+    if ($CommitHash) {
+        $tarballUrl = "$StorageUrl/rke2.$suffix-$CommitHash.tar.gz"
+        Write-Host "downloading binary tarball for commit: $CommitHash at $tarballUrl"
+        curl.exe -sfL $tarballUrl -o $TempTarball
     }
     else {
         $tarballUrl = "$Rke2GitHubUrl/releases/download/$Rke2Version/rke2.$suffix.tar.gz"
+        Write-InfoLog "downloading binary tarball at $tarballUrl"
+        curl.exe -sfL $tarballUrl -o $TempTarball
     }
-
-    Write-InfoLog "downloading tarball at $tarballUrl"
-    Invoke-RestMethod -Uri $tarballUrl -OutFile $TempTarball
 }
 
-# stage_local_checksums stages the local checksum hash for validation.
-function Copy-LocalChecksums() {
+# stage_local_checksums stages the binary local checksum hash for validation.
+function Copy-LocalBinaryChecksums() {
     [CmdletBinding()]
     param (
+        [Parameter()]
+        [String]
+        $CommitHash,
         [Parameter()]
         [String]
         $Path,
@@ -243,46 +328,114 @@ function Copy-LocalChecksums() {
     $suffix = $archInfo.Suffix    
     $arch = $archInfo.Arch
 
-    Write-InfoLog "staging local checksums from $-Path/sha256sum-$arch.txt"
-    Copy-Item -Path "$-Path/sha256sum-$ARCH.txt" -Destination $DestinationPath -Force
-    
-    #TODO: 
-    $expectedChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2.$suffix.tar.gz"
-    $expectedAirgapChecksum = ""
-    
-    if (Test-Path -Path "$Path/rke2-images.$suffix.tar.zst" -PathType Leaf) {
-        # TODO: Select-String
-        $expectedAirgapChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2-images.$suffix.tar.zst"
+    if ($CommitHash) {
+        Write-InfoLog "staging local binary checksum from $Path/rke2.$suffix-$CommitHash.tar.gz.sha256sum"
+        Copy-Item -Path "$Path/rke2.$suffix-$CommitHash.tar.gz.sha256sum" -Destination $DestinationPath -Force
+        $expectedBinaryChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2.$suffix.tar.gz"
+        $expectedBinaryAirgapChecksum = ""
+        if (Test-Path -Path "$Path/rke2.$suffix-$CommitHash.tar.gz" -PathType Leaf) {
+            # TODO: Select-String
+            $expectedBinaryAirgapChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2.$suffix.tar.gz"
+        }
+        return @{ ExpectedBinaryChecksum = $expectedBinaryChecksum; ExpectedBinaryAirgapChecksum = $expectedBinaryAirgapChecksum }
     }
-    elseif (Test-Path -Path "$Path/rke2-images.$suffix.tar.gz" -PathType Leaf) {     
-        # TODO: Select-String   
-        $expectedAirgapChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2-images.$suffix.tar.gz"
+    else {
+        Write-InfoLog "staging local binary checksums from $Path/sha256sum-$arch.txt"
+        Copy-Item -Path "$Path/sha256sum-$arch.txt" -Destination $DestinationPath -Force
+        $expectedBinaryChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2.$suffix.tar.gz"
+        $expectedBinaryAirgapChecksum = ""
+        if (Test-Path -Path "$Path/rke2.$suffix.tar.gz" -PathType Leaf) {
+            # TODO: Select-String
+            $expectedBinaryAirgapChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2.$suffix.tar.gz"
+        }
+        return @{ ExpectedBinaryChecksum = $expectedBinaryChecksum; ExpectedBinaryAirgapChecksum = $expectedBinaryAirgapChecksum }
     }
-
-    return @{ ExpectedChecksum = $expectedChecksum; ExpectedAirgapChecksum = $expectedAirgapChecksum }
 }
 
-# stage_local_tarball stages the local tarball.
-function Copy-LocalTarball() {
+function Copy-LocalImageChecksums() {
     [CmdletBinding()]
     param (
+        [Parameter()]
+        [String]
+        $CommitHash,
         [Parameter()]
         [String]
         $Path,
         [Parameter()]
         [String]
         $DestinationPath
-    )       
+    )  
     $archInfo = Get-ArchitectureInfo
-    $suffix = $archInfo.Suffix  
-    Write-InfoLog "staging tarball from $ArtifPathactPath/rke2.$suffix.tar.gz"
-    Copy-Item -Path "$Path/rke2.$suffix.tar.gz" -Destination $DestinationPath -Force
+    $suffix = $archInfo.Suffix    
+    $arch = $archInfo.Arch
+
+    if ($CommitHash) {
+        if (Test-Path -Path "$Path/rke2-images.$suffix-$CommitHash.tar.zst" -PathType Leaf) {
+            $expectedImageAirgapChecksum = ""
+            $expectedImageChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2-images.$suffix.tar.zst"
+            Write-InfoLog "staging local image checksum from $Path/rke2-images.$suffix-$CommitHash.tar.zst.sha256sum"
+            Copy-Item -Path "$Path/rke2-images.$suffix-$CommitHash.tar.zst.sha256sum" -Destination $DestinationPath -Force
+            $expectedImageAirgapChecksum = Find-Checksum -ChecksumFilePath $TempImageChecksums -Pattern "rke2-images.$suffix.tar.zst"
+            return @{ ExpectedImageChecksum = $expectedImageChecksum ; ExpectedImageAirgapChecksum = $expectedImageAirgapChecksum }
+        }
+    }
+    # TODO: possibly add a condition where commithash is not set and no local checksums are present 
+    else {
+        if (Test-Path -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.gz" -PathType Leaf) {
+            $expectedImageAirgapChecksum = ""
+            $expectedImageChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2-windows-$BuildVersion-$arch-images.tar.gz"
+            Write-InfoLog "staging local image checksums from $Path/sha256sum-$arch.txt"
+            Copy-Item -Path "$Path/sha256sum-$arch.txt" -Destination $DestinationPath -Force
+            $expectedImageAirgapChecksum = Find-Checksum -ChecksumFilePath $TempImageChecksums -Pattern "rke2-windows-$BuildVersion-$arch-images.tar.gz"
+            return @{ ExpectedImageChecksum = $expectedImageChecksum ; ExpectedImageAirgapChecksum = $expectedImageAirgapChecksum }
+        }
+        elseif (Test-Path -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.zst" -PathType Leaf) {
+            $expectedImageAirgapChecksum = ""
+            $expectedImageChecksum = Find-Checksum -ChecksumFilePath $DestinationPath -Pattern "rke2-windows-$BuildVersion-$arch-images.tar.zst"
+            Write-InfoLog "staging local image checksums from $Path/sha256sum-$arch.txt"
+            Copy-Item -Path "$Path/sha256sum-$arch.txt" -Destination $DestinationPath -Force
+            $expectedImageAirgapChecksum = Find-Checksum -ChecksumFilePath $TempImageChecksums -Pattern "rke2-windows-$BuildVersion-$arch-images.tar.zst"
+            return @{ ExpectedImageChecksum = $expectedImageChecksum ; ExpectedImageAirgapChecksum = $expectedImageAirgapChecksum }
+        }
+    }
+}
+
+
+# stage_local_tarball stages the local airgap binary tarball.
+function Copy-LocalBinaryTarball() {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $CommitHash,
+        [Parameter()]
+        [String]
+        $Path,
+        [Parameter()]
+        [String]
+        $DestinationPath
+    )
+    $archInfo = Get-ArchitectureInfo
+    $suffix = $archInfo.Suffix    
+
+    if (-Not $CommitHash) {
+        Write-InfoLog "staging local binary tarball from $ArtifactPath/rke2.$suffix.tar.gz"
+        Copy-Item -Path "$Path/rke2.$suffix.tar.gz" -Destination $DestinationPath -Force
+    }
+    elseif (Test-Path -Path "$Path/rke2.$suffix-$CommitHash.tar.zst" -PathType Leaf) {
+        Write-InfoLog "staging local binary tarball from $ArtifactPath/rke2.$suffix-$CommitHash.tar.zst"
+        Copy-Item -Path "$Path/rke2.$suffix-$CommitHash.tar.zst" -Destination $DestinationPath -Force
+        ]    
+    }
 }
 
 # stage_local_airgap_tarball stages the local checksum hash for validation.
 function Copy-LocalAirgapTarball() {
     [CmdletBinding()]
     param (
+        [Parameter()]
+        [String]
+        $CommitHash,
         [Parameter()]
         [String]
         $Path,
@@ -292,18 +445,25 @@ function Copy-LocalAirgapTarball() {
     )   
 
     $archInfo = Get-ArchitectureInfo
-    $suffix = $archInfo.Suffix  
-    if (!(Test-Path -Path "$Path/rke2-images.$suffix.tar.zst" -PathType Leaf)) {
-        Write-InfoLog "staging zst airgap image tarball from $Path/rke2-images.$suffix.tar.zst"
-        Copy-Item -Path "$Path/rke2-images.$suffix.tar.zst" -Destination $DestinationPath -Force
-        return "zst"
+    $arch = $archInfo.Arch
+    $suffix = $archInfo.Suffix
+
+    if (-Not $CommitHash) {
+        if (Test-Path -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.zst" -PathType Leaf) {
+            Write-InfoLog "staging local zst airgap image tarball from $Path/rke2-windows-$BuildVersion-$arch-images.tar.zst"
+            Copy-Item -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.zst" -Destination $DestinationPath -Force
+        }
+        elseif (Test-Path -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.gz" -PathType Leaf) {
+            Write-InfoLog "staging local gz airgap image tarball from $Path/rke2-windows-$BuildVersion-$arch-images.tar.gz"
+            Copy-Item -Path "$Path/rke2-windows-$BuildVersion-$arch-images.tar.gz" -Destination $DestinationPath -Force
+        }
     }
-    elseif (!(Test-Path -Path "$Path/rke2-images.$suffix.tar.gz" -PathType Leaf)) {
-        Write-InfoLog "staging gzip airgap image tarball from $Path/rke2-images.$suffix.tar.gz"
-        Copy-Item -Path "$Path/rke2-images.$suffix.tar.gz" -Destination $DestinationPath -Force
-        return "gz"
+    elseif (Test-Path -Path "$Path/rke2-images.$suffix-$CommitHash.tar.zst" -PathType Leaf) {
+        Write-InfoLog "staging local image tarball with commit $CommitHash from $Path/rke2-images.$suffix-$CommitHash.tar.zst"
+        Copy-Item -Path "$Path/rke2-images.$suffix-$CommitHash.tar.zst" -Destination $DestinationPath -Force
     }
 }
+
 
 # verify_tarball verifies the downloaded installer checksum.
 function Test-TarballChecksum() {
@@ -319,7 +479,7 @@ function Test-TarballChecksum() {
     Write-InfoLog "verifying tarball"
     $actualChecksum = (Get-FileHash -Path $Tarball -Algorithm SHA256).Hash.ToLower()
     if ($ExpectedChecksum -ne $actualChecksum) {
-        Write-FatalLog "download sha256 does not match $ExpectedChecksum, got $actualChecksum"
+        Write-FatalLog "downloaded sha256 does not match expected checksum: $ExpectedChecksum, instead got: $actualChecksum"
     }
 }
 
@@ -335,7 +495,7 @@ function Expand-Tarball() {
         $Tarball
     )
     Write-InfoLog "unpacking tarball file to $InstallPath"
-    New-Item -Path $InstallPath -Type Directory -Force
+    New-Item -Path $InstallPath -Type Directory -Force | Out-Null
     tar xzf "$Tarball" -C "$InstallPath"
     Write-InfoLog "install complete; you may want to run:  `$env:PATH+=`";$INSTALL_RKE2_TAR_PREFIX\bin`""    
 }
@@ -352,7 +512,7 @@ function Find-Checksum() {
     )
     try {
         $matchInfo = Select-String -Path $ChecksumFilePath -Pattern $Pattern
-        if($matchInfo) {
+        if ($matchInfo) {
             return $matchInfo.Line.Split(" ")[0]   
         }
         return ""
@@ -379,42 +539,6 @@ function Test-Download {
     }
 }
 
-# download_airgap_checksums downloads the checksum file for the airgap image tarball
-# and prepares the checksum value for later validation.
-function Get-AirgapChecksums() {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [String]
-        $CommitHash,
-        [Parameter()]
-        [String]
-        $AirgapChecksumsUrl,
-        [Parameter()]
-        [String]
-        $StorageUrl,
-        [Parameter()]
-        [String]
-        $TempAirgapChecksums
-    )
-    
-    if ($CommitHash){
-        return
-    }
-
-    $archInfo = Get-ArchitectureInfo
-    $suffix = $archInfo.Suffix  
-
-    $AirgapChecksumsUrl= "$StorageUrl/rke2-images.$suffix$CommitHash.tar.zst.sha256sum"
-    # try for zst first; if that fails use gz for older release branches
-    if (!(Test-Download -Uri $AirgapChecksumsUrl)) {
-        $AirgapChecksumsUrl = "$StorageUrl/rke2-images.$suffix$CommitHash.tar.gz.sha256sum"
-    }
-    Write-InfoLog "downloading airgap checksums at $AirgapChecksumsUrl"
-    Invoke-RestMethod -Uri $AirgapChecksumsUrl -OutFile $-TempAirgapChecksums
-    return Find-Checksum -Path $-TempAirgapChecksums -Pattern "rke2-images.$suffix.tar"
-}
-
 # download_airgap_tarball downloads the airgap image tarball.
 function Get-AirgapTarball() {
     [CmdletBinding()]
@@ -424,30 +548,31 @@ function Get-AirgapTarball() {
         $CommitHash,
         [Parameter()]
         [String]
-        $AirgapTarballUrl,
-        [Parameter()]
-        [String]
         $StorageUrl,
         [Parameter()]
         [String]
         $TempAirgapTarball        
     )
 
-    if ($CommitHash){
+    if (-Not $CommitHash) {
         return
     }    
 
     $archInfo = Get-ArchitectureInfo
     $suffix = $archInfo.Suffix    
+    $arch = $archInfo.Arch
 
-    $AirgapTarballUrl= "$StorageUrl/rke2-images.$suffix$CommitHash.tar.zst"
-
-    # try for zst first; if that fails use gz for older release branches
-    if (!(Test-Download -Url $AirgapTarballUrl)) {
-        $AirgapTarballUrl = "$StorageUrl/rke2-images.$suffix$CommitHash.tar.gz"
+    if ($CommitHash) {
+        $AirgapTarballUrl = "$StorageUrl/rke2-images.$suffix-$CommitHash.tar.zst"
+        Write-InfoLog "downloading airgap tarball with commit $CommitHash from $AirgapTarballUrl"
+        curl.exe -sfL $AirgapTarballUrl -o $TempAirgapTarball
     }
-    Write-InfoLog "downloading airgap tarball at $AirgapTarballUrl"
-    Invoke-RestMethod -Uri $AirgapTarballUrl -OutFile $TempAirgapTarball
+    # prepare for windows airgap image bug fix
+    else {
+        $AirgapTarballUrl = "$Rke2GitHubUrl/releases/download/$Rke2Version/rke2-windows-$BuildVersion-$arch-images.tar.gz"
+        Write-InfoLog "downloading airgap tarball from $AirgapTarballUrl"
+        curl.exe -sfL $AirgapTarballUrl -o $TempAirgapTarball
+    }
 }
 
 # verify_airgap_tarball compares the airgap image tarball checksum to the value
@@ -457,19 +582,26 @@ function Test-AirgapTarballChecksum() {
     param (
         [Parameter()]
         [String]
-        $ExpectedAirGapChecksum,
+        $CommitHash,
+        [Parameter()]
+        [String]
+        $ExpectedImageAirGapChecksum,
         [Parameter()]
         [String]
         $TempAirGapTarball
     )
 
-    if ($ExpectedAirGapChecksum) {
+    if (-Not $CommitHash) {
         return
     }
-    Write-InfoLog "verifying airgap tarball"
-    $actualAirgapChecksum = $(sha256sum "$TempAirGapTarball" | awk '{print $1}')
-    if ($ExpectedAirGapChecksum -ne $actualAirgapChecksum) {
-        Write-FatalLog "download sha256 does not match $ExpectedAirGapChecksum, got $actualAirgapChecksum"
+
+    if ($ExpectedImageAirGapChecksum) {
+        return
+    }
+    Write-InfoLog "verifying airgap tarball $TempAirGapTarball"
+    $actualImageAirgapChecksum = (Get-FileHash -Algorithm SHA256 -Path "$TempAirGapTarball").Hash.ToLower()
+    if ($ExpectedImageAirGapChecksum -ne $actualImageAirgapChecksum) {
+        Write-FatalLog "downloaded sha256 does not match $ExpectedImageAirGapChecksum, got $actualImageAirgapChecksum"
     }
 }
 
@@ -485,73 +617,96 @@ function Install-AirgapTarball() {
         $TempAirgapTarball,
         [Parameter()]
         [String]
-        $ExpectedAirGapChecksum,
+        $ExpectedImageAirGapChecksum,
         [Parameter()]
         [String]
-        $AirgapTarballFormat,
-        [Parameter()]
-        [String]
-        $TempAirgapChecksums
-    )    
+        $TempImageChecksums
+    )
 
-    if ($ExpectedAirGapChecksum) {
+    if (-Not $CommitHash) {
         return
     }
-    New-Item -Path "$InstallAgentImageDir" -ItemType "Directory"
-    $archInfo = Get-ArchitectureInfo
-    $suffix = $archInfo.Suffix
 
-    Write-InfoLog "installing airgap tarball to $InstallAgentImageDir"
-    Move-Item -Path $TempAirgapTarball -Destination "$InstallAgentImageDir/rke2-images.$suffix.tar.zst" -Force
+    if ($ExpectedImageAirGapChecksum) {
+        return
+    }
+
+    $archInfo = Get-ArchitectureInfo
+    $suffix = $archInfo.Suffix    
+    $arch = $archInfo.Arch
+
+    New-Item -Path $InstallAgentImageDir -ItemType Directory | Out-null
+    if ($CommitHash) {
+        Write-InfoLog "installing airgap tarball with commit $CommitHash to $InstallAgentImageDir"
+        Move-Item -Path $TempAirgapTarball -Destination "$InstallAgentImageDir/rke2-images.$suffix-$CommitHash.tar.zst" -Force
+    }
+    # prepare for windows airgap image bug fix
+    else {
+        New-Item -Path $InstallAgentImageDir -ItemType Directory | Out-null
+        Write-InfoLog "installing airgap tarball to $InstallAgentImageDir"
+        if ([IO.Path]::GetExtension($TempAirgapTarball) -eq ".zst") {
+            Move-Item -Path $TempAirgapTarball -Destination "$InstallAgentImageDir/rke2-windows-$BuildVersion-$arch-images.tar.zst" -Force
+        }
+        elseif ([IO.Path]::GetExtension($TempAirgapTarball) -eq ".gz") {
+            Move-Item -Path $TempAirgapTarball -Destination "$InstallAgentImageDir/rke2-windows-$BuildVersion-$arch-images.tar.gz" -Force
+        }
+    }
 }
 
 # Globals
 $STORAGE_URL = "https://storage.googleapis.com/rke2-ci-builds"
 $INSTALL_RKE2_GITHUB_URL = "https://github.com/rancher/rke2"
-$DEFAULT_TAR_PREFIX = "C:\usr\local"
 
-Set-Environment -DefaultTarPrefix $DEFAULT_TAR_PREFIX
-Test-MethodConflict
+Confirm-WindowsFeatures -RequiredFeatures @("Containers")
+Set-Environment 
+        if (Test-Path "$temp/rke2-install") {
+            Remove-Item -Path "$temp/rke2-install" -Force -Recurse
+        }
+        New-Item -Path $temp -Name rke2-install -ItemType Directory | Out-Null
 
-switch ($Method) {
-    "tar" { 
-        $temp = ""
-        if($env:TMP){
-            $temp = $env:TMP
-        }
-        elseif($env:TEMP){
-            $temp = $env:TEMP
-        }
-        New-Item -Path $temp -Name "rke2-install"  -ItemType "Directory"
-        
+        $archInfo = Get-ArchitectureInfo
+        $suffix = $archInfo.Suffix    
+        $arch = $archInfo.Arch
+        $BuildVersion = Get-BuildVersion        
         $TMP_DIR = Join-Path -Path $temp -ChildPath "rke2-install"
-        $TMP_CHECKSUMS = Join-Path -Path $TMP_DIR -ChildPath "rke2.checksums"
-        $TMP_TARBALL = Join-Path -Path $TMP_DIR -ChildPath "rke2.tarball"
+        $TMP_BINARY_CHECKSUMS = Join-Path -Path $TMP_DIR -ChildPath "rke2.checksums"
+        $TMP_BINARY_TARBALL = Join-Path -Path $TMP_DIR -ChildPath "rke2.tarball"
         $TMP_AIRGAP_CHECKSUMS = Join-Path -Path $TMP_DIR -ChildPath "rke2-images.checksums"
-        $TMP_AIRGAP_TARBALL = Join-Path -Path $TMP_DIR -ChildPath "rke2-images.tarball"	
+        $TMP_AIRGAP_TARBALL = Join-Path -Path $TMP_DIR -ChildPath "rke2-images.tarball"
 
-        if (-Not $ArtifactPath){
-            $checksums = Copy-LocalChecksums -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_CHECKSUMS
-            $CHECKSUM_EXPECTED = $checksums.ExpectedChecksum
-            $AIRGAP_CHECKSUM_EXPECTED = $checksums.ExpectedAirgapChecksum
-    
-            $AIRGAP_TARBALL_FORMAT = Copy-LocalAirgapTarball -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_TARBALL        
-            Copy-LocalTarball -Path $ArtifactPath -DestinationPath $TMP_TARBAL
+        if ($ArtifactPath) {
+            if ($Commit) {
+                $binaryChecksums = Copy-LocalBinaryChecksums -CommitHash $Commit -Path $ArtifactPath -DestinationPath $TMP_BINARY_CHECKSUMS
+                $imageChecksums = Copy-LocalImageChecksums -CommitHash $Commit -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_CHECKSUMS
+                $BINARY_CHECKSUM_EXPECTED = $binaryChecksums.ExpectedBinaryAirgapChecksum
+                $AIRGAP_CHECKSUM_EXPECTED = $imageChecksums.ExpectedImageAirgapChecksum
+                Copy-LocalAirgapTarball -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_TARBALL
+                Copy-LocalBinaryTarball -Path $ArtifactPath -DestinationPath $TMP_BINARY_TARBAL
+            }
+            else {
+                $binaryChecksums = Copy-LocalBinaryChecksums -Path $ArtifactPath -DestinationPath $TMP_BINARY_CHECKSUMS
+                $imageChecksums = Copy-LocalImageChecksums -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_CHECKSUMS
+                $BINARY_CHECKSUM_EXPECTED = $binaryChecksums.ExpectedBinaryAirgapChecksum
+                $AIRGAP_CHECKSUM_EXPECTED = $imageChecksums.ExpectedImageAirgapChecksum
+                Copy-LocalAirgapTarball -Path $ArtifactPath -DestinationPath $TMP_AIRGAP_TARBALL
+                Copy-LocalBinaryTarball -Path $ArtifactPath -DestinationPath $TMP_BINARY_TARBAL
+            }
         }
         else {
-            Get-ReleaseVersion
-            Write-InfoLog "using ${Version: -commit $Commit} as release"
-            $AIRGAP_CHECKSUM_EXPECTED = Get-AirgapChecksums -CommitHash $Commit -AirgapChecksumsUrl $AIRGAP_CHECKSUMS_URL -StorageUrl $STORAGE_URL -TempAirgapChecksums $TMP_AIRGAP_CHECKSUMS
-            Get-AirgapTarball -CommitHash $Commit -AirgapTarballUrl $AIRGAP_TARBALL_URL -StorageUrl $STORAGE_URL -TempAirgapTarball $TMP_AIRGAP_TARBALL
-            $CHECKSUM_EXPECTED = Get-Checksums -CommitHash $Commit -StorageUrl $STORAGE_URL -Rke2Version $Version -Rke2GitHubUrl $INSTALL_RKE2_GITHUB_URL -TempChecksums $TMP_CHECKSUMS   
-            Get-Tarball -CommitHash $Commit -StorageUrl $STORAGE_URL -Rke2Version $Version -Rke2GitHubUrl $INSTALL_RKE2_GITHUB_URL -TempTarball $TMP_TARBALL
+            $Version = Get-ReleaseVersion
+            Write-InfoLog "using $Version as release"
+            Write-InfoLog "Version: $Version `r`nStorage URL: $STORAGE_URL `r`nGithub URL: $INSTALL_RKE2_GITHUB_URL `r`nBinary Checksums: $TMP_BINARY_CHECKSUMS `r`nImage Checksums: $TMP_AIRGAP_CHECKSUMS"
+            $AIRGAP_CHECKSUM_EXPECTED = Get-ImageChecksums -CommitHash $Commit -StorageUrl $STORAGE_URL -Rke2Version $Version -Rke2GitHubUrl $INSTALL_RKE2_GITHUB_URL -TempImageChecksums $TMP_AIRGAP_CHECKSUMS
+            Get-AirgapTarball -CommitHash $Commit -StorageUrl $STORAGE_URL -TempAirgapTarball $TMP_AIRGAP_TARBALL
+            $BINARY_CHECKSUM_EXPECTED = Get-BinaryChecksums -CommitHash $Commit -StorageUrl $STORAGE_URL -Rke2Version $Version -Rke2GitHubUrl $INSTALL_RKE2_GITHUB_URL -TempBinaryChecksums $TMP_BINARY_CHECKSUMS
+            Get-BinaryTarball -CommitHash $Commit -StorageUrl $STORAGE_URL -Rke2Version $Version -Rke2GitHubUrl $INSTALL_RKE2_GITHUB_URL -TempTarball $TMP_BINARY_TARBALL
         }
-    
-        Test-AirgapTarballChecksum -ExpectedAirGapChecksum $AIRGAP_CHECKSUM_EXPECTED -TempAirGapTarball $TMP_AIRGAP_TARBALL   
-        Install-AirgapTarball -InstallAgentImageDir $INSTALL_RKE2_AGENT_IMAGES_DIR -TempAirgapTarball $TMP_AIRGAP_TARBALL -ExpectedAirGapChecksum $AIRGAP_CHECKSUM_EXPECTED -AirgapTarballFormat $AIRGAP_TARBALL_FORMAT -TempAirgapChecksums $TMP_AIRGAP_CHECKSUMS
-        Test-TarballChecksum -Tarball $TMP_TARBALL -ExpectedChecksum $CHECKSUM_EXPECTED
-        Expand-Tarball -InstallPath $INSTALL_RKE2_TAR_PREFIX -Tarball $TMP_TARBALL
-     }
+        Test-AirgapTarballChecksum -CommitHash $Commit -ExpectedImageAirgapChecksum $AIRGAP_CHECKSUM_EXPECTED -TempAirGapTarball $TMP_AIRGAP_TARBALL
+        Install-AirgapTarball -CommitHash $Commit -InstallAgentImageDir $AgentImagesDir -TempAirgapTarball $TMP_AIRGAP_TARBALL -ExpectedImageAirgapChecksum $AIRGAP_CHECKSUM_EXPECTED -TempImageChecksums $TMP_AIRGAP_CHECKSUMS
+        Test-TarballChecksum -Tarball $TMP_BINARY_TARBALL -ExpectedChecksum $BINARY_CHECKSUM_EXPECTED
+        Expand-Tarball -InstallPath $TarPrefix -Tarball $TMP_BINARY_TARBALL
+        Write-InfoLog "install complete; you may want to run:  `$env:PATH+=`";$TarPrefix\bin;C:\var\lib\rancher\rke2\bin`""
+    }
     "choco" {  
         Write-FatalLog "Currently unsupported installation method. $Method will be supported soon.."
     }

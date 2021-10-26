@@ -118,7 +118,7 @@ func (p *PEBinaryConfig) Bootstrap(ctx context.Context, nodeConfig *daemonconfig
 }
 
 // Kubelet starts the kubelet in a subprocess with watching goroutine.
-func (p *PEBinaryConfig) Kubelet(args []string) error {
+func (p *PEBinaryConfig) Kubelet(ctx context.Context, args []string) error {
 	extraArgs := map[string]string{
 		"file-check-frequency":     "5s",
 		"sync-frequency":           "30s",
@@ -145,7 +145,14 @@ func (p *PEBinaryConfig) Kubelet(args []string) error {
 	logrus.Infof("Running RKE2 kubelet %v", cleanArgs)
 	go func() {
 		for {
-			cmd := exec.Command(p.KubeletPath, cleanArgs...)
+			cniCtx, cancel := context.WithCancel(ctx)
+			go func() {
+				if err := p.cni.Start(cniCtx, p.cniConig); err != nil {
+					logrus.Errorf("error in cni start: %s", err)
+				}
+			}()
+
+			cmd := exec.CommandContext(ctx, p.KubeletPath, cleanArgs...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			err := cmd.Run()
@@ -157,7 +164,7 @@ func (p *PEBinaryConfig) Kubelet(args []string) error {
 }
 
 // KubeProxy starts the kubeproxy in a subprocess with watching goroutine.
-func (p *PEBinaryConfig) KubeProxy(args []string) error {
+func (p *PEBinaryConfig) KubeProxy(ctx context.Context, args []string) error {
 	extraArgs := map[string]string{
 		"hostname-override": p.cniConig.CalicoConfig.Hostname,
 		"v":                 "4",
@@ -193,7 +200,7 @@ func (p *PEBinaryConfig) KubeProxy(args []string) error {
 	logrus.Infof("Running RKE2 kube-proxy %s", args)
 	go func() {
 		for {
-			cmd := exec.Command(filepath.Join("c:\\", p.DataDir, "bin", "kube-proxy.exe"), args...)
+			cmd := exec.CommandContext(ctx, filepath.Join("c:\\", p.DataDir, "bin", "kube-proxy.exe"), args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			err := cmd.Run()
@@ -205,18 +212,23 @@ func (p *PEBinaryConfig) KubeProxy(args []string) error {
 	return nil
 }
 
+// APIServerHandlers isn't supported in the binary executor.
+func (p *PEBinaryConfig) APIServerHandlers(ctx context.Context) (authenticator.Request, http.Handler, error) {
+	panic("kube-api-server is unsupported on windows")
+}
+
 // APIServer isn't supported in the binary executor.
-func (p *PEBinaryConfig) APIServer(ctx context.Context, etcdReady <-chan struct{}, args []string) (authenticator.Request, http.Handler, error) {
+func (p *PEBinaryConfig) APIServer(ctx context.Context, etcdReady <-chan struct{}, args []string) error {
 	panic("kube-api-server is unsupported on windows")
 }
 
 // Scheduler isn't supported in the binary executor.
-func (p *PEBinaryConfig) Scheduler(apiReady <-chan struct{}, args []string) error {
+func (p *PEBinaryConfig) Scheduler(ctx context.Context, apiReady <-chan struct{}, args []string) error {
 	panic("kube-scheduler is unsupported on windows")
 }
 
 // ControllerManager isn't supported in the binary executor.
-func (p *PEBinaryConfig) ControllerManager(apiReady <-chan struct{}, args []string) error {
+func (p *PEBinaryConfig) ControllerManager(ctx context.Context, apiReady <-chan struct{}, args []string) error {
 	panic("kube-controller-manager is unsupported on windows")
 }
 
@@ -226,12 +238,12 @@ func (p *PEBinaryConfig) CurrentETCDOptions() (opts executor.InitialOptions, err
 }
 
 // CloudControllerManager isn't supported in the binary executor.
-func (p *PEBinaryConfig) CloudControllerManager(ccmRBACReady <-chan struct{}, args []string) error {
+func (p *PEBinaryConfig) CloudControllerManager(ctx context.Context, ccmRBACReady <-chan struct{}, args []string) error {
 	panic("cloud-controller-manager is unsupported on windows.")
 }
 
 // ETCD isn't supported in the binary executor.
-func (p *PEBinaryConfig) ETCD(args executor.ETCDConfig) error {
+func (p *PEBinaryConfig) ETCD(ctx context.Context, args executor.ETCDConfig) error {
 	panic("etcd is unsupported on windows")
 }
 

@@ -77,8 +77,8 @@ xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
     ${REGISTRY}/rancher/hardened-coredns:v1.8.3-build20210720
     ${REGISTRY}/rancher/hardened-cluster-autoscaler:v1.8.3-build20210729
     ${REGISTRY}/rancher/hardened-dns-node-cache:1.20.0-build20210803
-    ${REGISTRY}/rancher/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/rancher/hardened-k8s-metrics-server:v0.3.6-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/rancher/hardened-etcd:${ETCD_VERSION}-build20210915
+    ${REGISTRY}/rancher/hardened-k8s-metrics-server:v0.5.0-build20210915
     ${REGISTRY}/rancher/klipper-helm:v0.6.1-build20210616
     ${REGISTRY}/rancher/pause:${PAUSE_VERSION}
     ${REGISTRY}/rancher/mirrored-jettech-kube-webhook-certgen:v1.5.1
@@ -88,8 +88,9 @@ EOF
 ```
 Update the image version so that it points to the correct one
 
-4. Once the previous steps are done and the PR is merged in rke2, we can go ahead and do the change in Rancher. For that
- we must create a PR in the `kontainer-driver-metadata` Github repo or [KDM](https://github.com/rancher/kontainer-driver-metadata).
+4. Once the previous steps are done and the PR is merged in rke2, we can go ahead and, if needed, update Rancher with
+the change. We must only update it in case the options available to the user changed, i.e. when a field in values.yaml
+changed. If that is the case, we must create a PR in the `kontainer-driver-metadata` Github repo or [KDM](https://github.com/rancher/kontainer-driver-metadata).
 KDM collects information so that the UI/API knows what options to display and validate for chart configuration.
 It does not impact what is deployed in the cluster, it only informs the options that rancher exposes. Therefore, it is
 crucial that the versions are the same as what rke2 is consuming. Open the file `channels-rke2.yaml` and under the

@@ -15,13 +15,16 @@ awk '{print $1}' << EOF > build/images-core.txt
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
+<<<<<<< HEAD
     ${REGISTRY}/${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-cluster-autoscaler:${CLUSTER_AUTOSCALER_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-dns-node-cache:${DNS_NODE_CACHE_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/klipper-helm:${KLIPPER_HELM_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/pause:${PAUSE_VERSION}
-    ${REGISTRY}/${REPO}/mirrored-jettech-kube-webhook-certgen:${JETTECH_VERSION}
+    ${REGISTRY}/${REPO}/mirrored-ingress-nginx-kube-webhook-certgen:${CERTGEN_VERSION}
     ${REGISTRY}/${REPO}/nginx-ingress-controller:${NGINX_INGRESS_VERSION}
     ${REGISTRY}/${REPO}/rke2-cloud-provider:${CCM_VERSION}-${IMAGE_BUILD_VERSION}
 EOF
@@ -47,6 +50,7 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
     ${REGISTRY}/${REPO}/mirrored-calico-node:${CALICO_VERSION}
     ${REGISTRY}/${REPO}/mirrored-calico-pod2daemon-flexvol:${CALICO_VERSION}
     ${REGISTRY}/${REPO}/mirrored-calico-cni:${CALICO_VERSION}
+    ${REGISTRY}/${REPO}/mirrored-calico-apiserver:${CALICO_VERSION}
 EOF
 
 if [ "${ARCH}" = "amd64" ]; then
@@ -72,6 +76,15 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-multus.txt
     ${REGISTRY}/${REPO}/hardened-ib-sriov-cni:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-sriov-network-resources-injector:${SRIOV_RESOURCES_INJECTOR_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-sriov-network-webhook:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
+EOF
+
+xargs -n1 -t docker image pull --quiet << EOF > build/images-harvester.txt
+    ${REGISTRY}/${REPO}/harvester-cloud-provider:${HARVESTER_VERSION}
+    ${REGISTRY}/${REPO}/harvester-csi-driver:${HARVESTER_VERSION}
+    ${REGISTRY}/${REPO}/longhornio-csi-node-driver-registrar:${LONGHORN_REGISTRAR_VERSION}
+    ${REGISTRY}/${REPO}/longhornio-csi-resizer:${LONGHORN_RESIZER_VERSION}
+    ${REGISTRY}/${REPO}/longhornio-csi-provisioner:${LONGHORN_PROVISIONER_VERSION}
+    ${REGISTRY}/${REPO}/longhornio-csi-attacher:${LONGHORN_ATTACHER_VERSION}
 EOF
 
 # Continue to provide a legacy airgap archive set with the default CNI images
