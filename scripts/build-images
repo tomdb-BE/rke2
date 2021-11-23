@@ -15,7 +15,6 @@ awk '{print $1}' << EOF > build/images-core.txt
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
-<<<<<<< HEAD
     ${REGISTRY}/${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-coredns:${COREDNS_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-cluster-autoscaler:${CLUSTER_AUTOSCALER_VERSION}-${IMAGE_BUILD_VERSION}
