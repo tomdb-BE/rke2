@@ -145,9 +145,8 @@ func (p *PEBinaryConfig) Kubelet(ctx context.Context, args []string) error {
 	logrus.Infof("Running RKE2 kubelet %v", cleanArgs)
 	go func() {
 		for {
-			cniCtx, cancel := context.WithCancel(ctx)
 			go func() {
-				if err := p.cni.Start(cniCtx, p.cniConig); err != nil {
+				if err := p.cni.Start(p.cniConig); err != nil {
 					logrus.Errorf("error in cni start: %s", err)
 				}
 			}()
