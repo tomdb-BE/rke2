@@ -68,13 +68,13 @@ fi
 xargs -n1 -t docker image pull --quiet << EOF > build/images-multus.txt
     ${REGISTRY}/${REPO}/hardened-multus-cni:${MULTUS_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-cni-plugins:${CNI_PLUGINS_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-network-operator:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-network-config-daemon:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-network-device-plugin:${SRIOV_DEVICE_PLUGIN_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-cni:${SRIOV_CNI_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-ib-sriov-cni:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-network-resources-injector:${SRIOV_RESOURCES_INJECTOR_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/hardened-sriov-network-webhook:${SRIOV_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-network-operator:${SRIOV_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-network-config-daemon:${SRIOV_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-network-device-plugin:${SRIOV_DEVICE_PLUGIN_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-cni:${SRIOV_CNI_VERSION}
+    ${REGISTRY}/${REPO}/hardened-ib-sriov-cni:${SRIOV_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-network-resources-injector:${SRIOV_RESOURCES_INJECTOR_VERSION}
+    ${REGISTRY}/${REPO}/hardened-sriov-network-webhook:${SRIOV_VERSION}
 EOF
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-harvester.txt
