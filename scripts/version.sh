@@ -4,7 +4,7 @@ set -x
 PROG=rke2
 REGISTRY=${REGISTRY:-docker.io}
 REPO=${REPO:-rancher}
-K3S_PKG=github.com/rancher/k3s
+K3S_PKG=github.com/k3s-io/k3s
 RKE2_PKG=github.com/rancher/rke2
 GO=${GO-go}
 GOARCH=${GOARCH:-$("${GO}" env GOARCH)}
@@ -54,7 +54,7 @@ if [ -d .git ]; then
     fi
 fi
 
-K3S_VERSION=${K3S_VERSION:-v1.22.4+k3s1}
+K3S_VERSION=${K3S_VERSION:-v1.22.4-k3s1}
 CONTAINERD_VERSION=${CONTAINERD_VERSION:-v1.5.7-k3s2}
 CRICTL_VERSION=${CRICTL_VERSION:-v1.22.0}
 RUNC_VERSION=${RUNC_VERSION:-v1.0.2}
