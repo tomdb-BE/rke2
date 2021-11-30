@@ -39,6 +39,7 @@ var (
 		"/usr/local/share/ca-certificates",
 		"/usr/share/ca-certificates",
 	}
+	defaultAuditPolicyFile = "/etc/rancher/rke2/audit-policy.yaml"
 )
 
 const (
@@ -165,7 +166,7 @@ func (s *StaticPodConfig) Kubelet(ctx context.Context, args []string) error {
 	args = append(extraArgs, args...)
 	go func() {
 		for {
-			cmd := exec.CommandContext(ctx, s.KubeletPath, args...)
+			cmd := exec.Command(s.KubeletPath, args...)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			addDeathSig(cmd)
@@ -234,7 +235,10 @@ func (s *StaticPodConfig) APIServer(ctx context.Context, etcdReady <-chan struct
 		}
 		args = append(extraArgs, args...)
 	}
-	if s.CISMode {
+	if s.CISMode && s.AuditPolicyFile == "" {
+		s.AuditPolicyFile = defaultAuditPolicyFile
+	}
+	if s.AuditPolicyFile != "" {
 		extraArgs := []string{
 			"--audit-policy-file=" + s.AuditPolicyFile,
 			"--audit-log-path=" + auditLogFile,
@@ -446,7 +450,7 @@ func (s *StaticPodConfig) CurrentETCDOptions() (opts executor.InitialOptions, er
 }
 
 // ETCD starts the etcd static pod.
-func (s *StaticPodConfig) ETCD(ctx context.Context, args executor.ETCDConfig, extraArgs []string) error {
+func (s *StaticPodConfig) ETCD(ctx context.Context, args executor.ETCDConfig) error {
 	image, err := s.Resolver.GetReference(images.ETCD)
 	if err != nil {
 		return err
@@ -460,7 +464,7 @@ func (s *StaticPodConfig) ETCD(ctx context.Context, args executor.ETCDConfig, ex
 		return err
 	}
 
-	confFile, err := args.ToConfigFile(extraArgs)
+	confFile, err := args.ToConfigFile()
 	if err != nil {
 		return err
 	}

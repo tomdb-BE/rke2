@@ -140,7 +140,7 @@ func fakeWithRetriableError(ro interface{}) *fake.Clientset {
 	return cs
 }
 
-func Test_deployPodSecurityPolicyFromYaml(t *testing.T) {
+func Test_UnitdeployPodSecurityPolicyFromYaml(t *testing.T) {
 	pspYAML := fmt.Sprintf(globalRestrictedPSPTemplate, testPSPName)
 	type args struct {
 		ctx     context.Context
