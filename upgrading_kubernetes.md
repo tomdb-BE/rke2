@@ -28,19 +28,12 @@ Create a new release tag at the [image-build-kubernetes](https://github.com/ranc
 This will take a few minutes for CI to run but upon completion, a new image will be available in [Dockerhub](https://hub.docker.com/r/rancher/hardened-kubernetes).
 
 
-### Helm Chart
-
-RKE2 depends on it's [Helm Charts](https://github.com/rancher/rke2-charts) being up-to-date with the expected versions for the Kubernetes components. The build process downloads these charts and bundles them into the runtime image.
-
-Create a PR in [rke2-charts](https://github.com/rancher/rke2-charts) that updates the version of the `kube-proxy` image in both the `image.tag` field of `packages/rke2-kube-proxy/charts/values.yaml`, and also in `packages/rke2-kube-proxy/charts/Chart.yaml`. Upon getting 1 approval and merging, CI will create the needed build artifact that RKE2 will use.
-
 ## Update RKE2
 
 The following files have references that will need to be updated in the respective locations. Replace the found version with the desired version. There are also references in documentation that should be updated and kept in sync. 
 
-* Dockerfile: `RUN CHART_VERSION="v1.21.4-build2021041301"     CHART_FILE=/charts/rke2-kube-proxy.yaml`
-* Dockerfile: `FROM rancher/k3s:v1.21.4-k3s1 AS k3s`
-* version.sh: `KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.21.4}`
+* Dockerfile: `FROM rancher/k3s:v1.22.4-k3s1 AS k3s`
+* version.sh: `KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.22.4}`
 * In v1.19 and older, pkg/images/image.go: `KubernetesVersion== "v1.19.15-rke2r1-build20210916"`
 * go.mod: ensure that the associated k3s version is used.
 
@@ -192,13 +185,14 @@ The PRs should be merged in a timely manner, within about a day; however, they d
 
 ### Promoting to Stable
 
-After 24 hours, we'll promote the release to stable by updating the channel server's config as we did at above, however this time changing "latest" to "stable". We need to do the same thing for RPM's too. This involves the same steps for RPM releases but changing "latest" to "stable" in the release name. E.g. `v1.21.4+rke2r1.stable.0`.
+After 24 hours, we'll promote the release to stable and need to rebuild the RPM's. This involves the same steps for RPM releases but changing "latest" to "stable" in the release name. E.g. `v1.21.5+rke2r1.stable.0`.
+NOTE: All releases for the month need to be marked as stable, not just the highest release (e.g. v1.19.15, v1.20.11, and v1.21.5 all get marked as stable, not just v1.21.5). 
 
 ### Updating Channel Server
 
 After promoting the release to stable, we need to update the channel server. This is done by editing the `channels.yaml` file in the [repo](https://github.com/rancher/rke2/blob/master/channels.yaml).
 
-* Update the line: `latest: <release>` to be the recent release. e.g. `v1.21.4+rke2r1`.
+* Update the line: `latest: <release>` to be the recent release. e.g. `v1.21.5+rke2r1`.
 * Verify updated in the JSON output from a call [here](https://update.rke2.io/v1-release/channels).
 
 ## Release Process

@@ -20,8 +20,9 @@ RKE2 has been tested and validated on the following operating systems and their 
 
 Hardware requirements scale based on the size of your deployments. Minimum recommendations are outlined here.
 
-*    RAM: 512MB Minimum (we recommend at least 1GB)
-*    CPU: 1 Minimum
+### Linux/Windows
+*    RAM: 4GB Minimum (we recommend at least 8GB)
+*    CPU: 2 Minimum (we recommend at least 4CPU)
 
 #### Disks
 

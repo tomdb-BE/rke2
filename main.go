@@ -15,6 +15,8 @@ func main() {
 		cmds.NewServerCommand(),
 		cmds.NewAgentCommand(),
 		cmds.NewEtcdSnapshotCommand(),
+		cmds.NewCertRotateCommand(),
+		cmds.NewSecretsEncryptCommand(),
 	}
 
 	if err := app.Run(configfilearg.MustParse(os.Args)); err != nil {

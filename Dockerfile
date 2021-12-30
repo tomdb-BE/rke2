@@ -9,6 +9,7 @@ ARG BASE_VERSION=v1.16.10b7-multiarch
 
 # Build environment
 FROM ${REPO}/hardened-build-base:${BASE_VERSION} AS build
+FROM rancher/hardened-build-base:v1.17.5b7 AS build
 RUN set -x \
     && apk --no-cache add \
     bash \
@@ -163,9 +164,6 @@ FROM ${REPO}/hardened-crictl:${CRICTL_VERSION} AS crictl
 FROM ${REPO}/hardened-runc:${RUNC_VERSION} AS runc
 
 FROM scratch AS runtime-collect
-COPY --from=k3s \
-    /bin/socat \
-    /bin/
 COPY --from=runc \
     /usr/local/bin/runc \
     /bin/
@@ -191,7 +189,7 @@ FROM scratch AS runtime
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 COPY --from=runtime-collect / /
 
-FROM ubuntu:18.04 AS test
+FROM ubuntu:20.04 AS test
 ARG TARGETARCH
 ENV ETCD_UNSUPPORTED_ARCH=arm64
 VOLUME /var/lib/rancher/rke2
