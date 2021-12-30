@@ -9,7 +9,6 @@ ARG BASE_VERSION=v1.16.10b7-multiarch
 
 # Build environment
 FROM ${REPO}/hardened-build-base:${BASE_VERSION} AS build
-FROM rancher/hardened-build-base:v1.17.5b7 AS build
 RUN set -x \
     && apk --no-cache add \
     bash \

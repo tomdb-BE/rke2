@@ -57,13 +57,11 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
     ${REGISTRY}/${REPO}/mirrored-cloud-provider-vsphere-cpi-release-manager:${VSPHERE_CPI_VERSION}
     ${REGISTRY}/${REPO}/mirrored-cloud-provider-vsphere-csi-release-driver:${VSPHERE_CSI_VERSION}
     ${REGISTRY}/${REPO}/mirrored-cloud-provider-vsphere-csi-release-syncer:${VSPHERE_CSI_VERSION}
-    ${REGISTRY}/${REPO}/mirrored-k8scsi-csi-attacher:${K8SCSI_CSI_ATTACHER_VERSION}
     ${REGISTRY}/${REPO}/mirrored-k8scsi-csi-node-driver-registrar:${K8SCSI_CSI_NODE_DRIVER_VERSION}
-    ${REGISTRY}/${REPO}/mirrored-k8scsi-csi-provisioner:${K8SCSI_CSI_PROVISIONER_VERSION}
     ${REGISTRY}/${REPO}/mirrored-k8scsi-csi-resizer:${K8SCSI_CSI_RESIZER_VERSION}
     ${REGISTRY}/${REPO}/mirrored-k8scsi-livenessprobe:${K8SCSI_CSI_LIVENESSPROBE_VERSION}
-    ${REGISTRY}/${REPO}/mirrored-sig-storage-csi-attacher:${SIG_ATTACHER_VERSION}
-    ${REGISTRY}/${REPO}/mirrored-sig-storage-csi-provisioner:${SIG_PROVISIONER_VERSION}
+    ${REGISTRY}/${REPO}/mirrored-sig-storage-csi-attacher:${K8SCSI_CSI_ATTACHER_VERSION}
+    ${REGISTRY}/${REPO}/mirrored-sig-storage-csi-provisioner:${K8SCSI_CSI_PROVISIONER_VERSION}
 EOF
 fi
 
