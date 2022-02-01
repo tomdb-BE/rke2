@@ -29,6 +29,20 @@ The next tabs inform how to deploy each CNI plugin and override the default opti
           iface: "eth1"
     ```
 
+    Starting with RKE2 v1.23 it is possible to use flannels [wireguard backend](https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md#wireguard) for in-kernel WireGuard encapsulation and encryption ([Users of kernels < 5.6 need to install a module](https://www.wireguard.com/install/)). This can be achieved using the following config:
+    
+    ```yaml
+    apiVersion: helm.cattle.io/v1
+    kind: HelmChartConfig
+    metadata:
+      name: rke2-canal
+      namespace: kube-system
+    spec:
+      valuesContent: |-
+        flannel:
+          backend: "wireguard"
+    ```
+    
     For more information about the full options of the Canal config please refer to the [rke2-charts](https://github.com/rancher/rke2-charts/blob/main-source/packages/rke2-canal/charts/values.yaml).
 
     Canal is currently no supported in the windows installation of RKE2
@@ -85,7 +99,7 @@ Each CNI plugin requires a different configuration for dual-stack:
 
 === "Canal CNI plugin"
 
-    Canal does not support dual-stack at the moment. To track the progress on this, please check the [dual-stack in canal issue](https://github.com/rancher/rke2/issues/1883)
+    Canal automatically detects the RKE2 configuration for dual-stack and does not need any extra configuration. Dual-stack is currently not supported in the windows installations of RKE2.
 
 === "Cilium CNI plugin"
 

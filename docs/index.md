@@ -6,7 +6,7 @@ It is a fully [conformant Kubernetes distribution](https://landscape.cncf.io/sel
 
 To meet these goals, RKE2 does the following:
 
-- Provides [defaults and configuration options](security/hardening_guide.md) that allow clusters to pass the CIS Kubernetes Benchmark [v1.5](security/cis_self_assessment15.md) or [v1.6](security/cis_self_assessment16.md)with minimal operator intervention
+- Provides [defaults and configuration options](security/hardening_guide.md) that allow clusters to pass the CIS Kubernetes Benchmark [v1.5](security/cis_self_assessment15.md) or [v1.6](security/cis_self_assessment16.md) with minimal operator intervention
 - Enables [FIPS 140-2 compliance](security/fips_support.md)
 - Regularly scans components for CVEs using [trivy](https://github.com/aquasecurity/trivy) in our build pipeline
 
@@ -23,7 +23,7 @@ Importantly, RKE2 does not rely on Docker as RKE1 does. RKE1 leveraged Docker fo
 ## Why two names?
 It is known as RKE Government in order to convey the primary use cases and sector it currently targets.
 
-It is also known as RKE 2 as it is the next next iteration of the Rancher Kubernetes Engine for datacenter use cases. The distribution runs standalone and integration work into Rancher is underway. We intend to make RKE 2 an option in Rancher once it achieves feature parity with RKE. An upgrade path from RKE to RKE2 is also under development for those that want to migrate.
+It is also known as RKE 2 as it is the next iteration of the Rancher Kubernetes Engine for datacenter use cases. The distribution runs standalone and integration work into Rancher is underway. We intend to make RKE 2 an option in Rancher once it achieves feature parity with RKE. An upgrade path from RKE to RKE2 is also under development for those that want to migrate.
 
 ## Security
 
