@@ -4,7 +4,7 @@ ARG CONTAINERD_VERSION
 ARG CRICTL_VERSION
 ARG RUNC_VERSION
 ARG REPO
-ARG BASE_VERSION=v1.17.5b7-multiarch
+ARG BASE_VERSION=v1.17.6b7-multiarch
 
 # Build environment
 FROM ${REPO}/hardened-build-base:${BASE_VERSION} AS build
