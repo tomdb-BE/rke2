@@ -21,7 +21,7 @@ xargs -n1 -t docker image pull --quiet << EOF >> build/images-core.txt
     ${REGISTRY}/${REPO}/hardened-dns-node-cache:${DNS_NODE_CACHE_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-etcd:${ETCD_VERSION}-${IMAGE_BUILD_VERSION}
     ${REGISTRY}/${REPO}/hardened-k8s-metrics-server:${METRICS_SERVER_VERSION}-${IMAGE_BUILD_VERSION}
-    ${REGISTRY}/${REPO}/klipper-helm:${KLIPPER_HELM_VERSION}-${IMAGE_BUILD_VERSION}
+    ${REGISTRY}/${REPO}/klipper-helm:${KLIPPER_HELM_VERSION}
     ${REGISTRY}/${REPO}/pause:${PAUSE_VERSION}
     ${REGISTRY}/${REPO}/mirrored-ingress-nginx-kube-webhook-certgen:${CERTGEN_VERSION}
     ${REGISTRY}/${REPO}/nginx-ingress-controller:${NGINX_INGRESS_VERSION}
