@@ -7,13 +7,9 @@ ARG REPO
 ARG BASE_VERSION=v1.17.6b7-multiarch
 
 # Build environment
-<<<<<<< HEAD
 FROM ${REPO}/hardened-build-base:${BASE_VERSION} AS build
-=======
-FROM rancher/hardened-build-base:v1.17.5b7 AS build
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
->>>>>>> 84f5f672eb8a4df2bb19121d79ad29115ba6b1b0
 RUN set -x \
     && apk --no-cache add \
     bash \
@@ -150,7 +146,6 @@ ARG REPO
 RUN apk add --no-cache gettext
 COPY charts/ /charts/
 RUN echo ${CACHEBUST}>/dev/null
-<<<<<<< HEAD
 RUN REPO=${REPO}/mirrored-cilium             CHART_VERSION=${CILIUM_CHART_VERSION}         CHART_TAG=${CILIUM_VERSION}          CHART_TAG_STARTUP=${CILIUM_STARTUP_SCRIPT_VERSION}         CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${CANAL_CHART_VERSION}          CHART_TAG=${HARDENED_CALICO_VERSION} CHART_TAG_FLANNEL=${FLANNEL_VERSION}                       CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${CALICO_CHART_VERSION}         CHART_TAG=${CALICO_VERSION}          CHART_TAG_OPERATOR=${CALICO_OPERATOR_VERSION}              CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
@@ -164,37 +159,15 @@ RUN REPO=${REPO}/mirrored-cloud-provider-vsphere-csi-release-driver  CHART_VERSI
 RUN REPO=${REPO}                             CHART_VERSION=${HARVESTER_CLOUD_PROVIDER_CHART_VERSION}              CHART_TAG=${HARVESTER_VERSION}                                           CHART_FILE=/charts/harvester-cloud-provider.yaml  CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${HARVESTER_CSI_DRIVER_CHART_VERSION}                  CHART_TAG=${HARVESTER_VERSION}                                           CHART_FILE=/charts/harvester-csi-driver.yaml      CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN rm -vf /charts/*.sh /charts/*.md /charts/*.yaml-extra
-=======
-RUN CHART_VERSION="1.11.203"                  CHART_FILE=/charts/rke2-cilium.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v3.21.4-build2022031701"   CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v3.22.101"                 CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="v1.0.202"                  CHART_FILE=/charts/rke2-calico-crd.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="1.17.000"                  CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="4.1.001"                   CHART_FILE=/charts/rke2-ingress-nginx.yaml  CHART_BOOTSTRAP=false  /charts/build-chart.sh
-RUN CHART_VERSION="2.11.100-build2021111904"  CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
-RUN CHART_VERSION="v3.7.1-build2021111906"    CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="1.2.101"                   CHART_FILE=/charts/rancher-vsphere-cpi.yaml CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="2.5.1-rancher101"          CHART_FILE=/charts/rancher-vsphere-csi.yaml CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN CHART_VERSION="0.1.1100"                  CHART_FILE=/charts/harvester-cloud-provider.yaml CHART_BOOTSTRAP=true /charts/build-chart.sh
-RUN CHART_VERSION="0.1.1100"                  CHART_FILE=/charts/harvester-csi-driver.yaml     CHART_BOOTSTRAP=true /charts/build-chart.sh
-RUN rm -vf /charts/*.sh /charts/*.md
->>>>>>> 84f5f672eb8a4df2bb19121d79ad29115ba6b1b0
 
 # rke-runtime image
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
-<<<<<<< HEAD
 FROM ${REPO}/hardened-kubernetes:${KUBERNETES_IMAGE_TAG} AS kubernetes
 FROM ${REPO}/hardened-containerd:${CONTAINERD_VERSION} AS containerd
 FROM ${REPO}/hardened-crictl:${CRICTL_VERSION} AS crictl
 FROM ${REPO}/hardened-runc:${RUNC_VERSION} AS runc
-=======
-FROM rancher/hardened-kubernetes:v1.23.6-rke2r1-build20220420 AS kubernetes
-FROM rancher/hardened-containerd:v1.5.11-k3s2-build20220425 AS containerd
-FROM rancher/hardened-crictl:v1.23.0-build20220414 AS crictl
-FROM rancher/hardened-runc:v1.0.3-build20211210 AS runc
->>>>>>> 84f5f672eb8a4df2bb19121d79ad29115ba6b1b0
 
 FROM scratch AS runtime-collect
 COPY --from=runc \
