@@ -37,16 +37,11 @@ steps:
         path: /var/run/docker.sock
 
   - name: fossa
-    image: registry.suse.com/suse/sle15:15.3.17.8.1
+    image: rancher/drone-fossa:latest
     failure: ignore
-    environment:
-      FOSSA_API_KEY:
+    settings:
+      api_key:
         from_secret: FOSSA_API_KEY
-    commands:
-      - zypper -n install curl unzip
-      - "curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/spectrometer/master/install.sh | sh"
-      - fossa analyze
-      - fossa test
     when:
       instance:
         - drone-publish.rancher.io
@@ -54,6 +49,8 @@ steps:
         include:
           - "refs/heads/master"
           - "refs/heads/release-*"
+          - "refs/tags/v*"
+          - "refs/pull/*"
       event:
         - push
         - tag
@@ -110,23 +107,6 @@ steps:
     volumes:
       - name: docker
         path: /var/run/docker.sock
-    when:
-      event:
-        - tag
-      instance:
-        - drone-publish.rancher.io
-      ref:
-        - refs/head/master
-        - refs/tags/*
-
-  - name: push-runtime-manifest
-    image: plugins/manifest
-    settings:
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      spec: manifest-runtime.tmpl
     when:
       event:
         - tag
@@ -214,3 +194,117 @@ volumes:
 
 depends_on:
   - build-amd64
+---
+kind: pipeline
+type: docker
+name: build-s390x
+
+platform:
+  os: linux
+  arch: amd64
+
+node:
+  arch: s390x
+
+steps:
+  - name: build
+    image: rancher/dapper:v0.5.8
+    failure: ignore
+    commands:
+      - dapper -f Dockerfile --target dapper make dapper-ci
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+
+  - name: package-images
+    image: rancher/dapper:v0.5.8
+    failure: ignore
+    commands:
+      - dapper -f Dockerfile --target dapper make package-images
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+        - tag
+      instance:
+        - drone-publish.rancher.io
+
+  - name: publish-image-runtime
+    image: rancher/hardened-build-base:v1.16.10b7
+    failure: ignore
+    commands:
+      - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - DRONE_TAG=${DRONE_TAG} make publish-image-runtime
+    environment:
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      DOCKER_USERNAME:
+        from_secret: docker_username
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+        - tag
+      instance:
+        - drone-publish.rancher.io
+      ref:
+        - refs/head/master
+        - refs/tags/*
+
+  - name: publish-dist-artifacts
+    image: rancher/drone-images:github-release-s390x
+    failure: ignore
+    settings:
+      api_key:
+        from_secret: github_token
+      checksum:
+        - sha256
+      checksum_file: CHECKSUMsum-s390x.txt
+      checksum_flatten: true
+      files:
+        - dist/artifacts/*
+      prerelease: true
+    when:
+      event:
+        - tag
+      instance:
+        - drone-publish.rancher.io
+      ref:
+        - refs/head/master
+        - refs/tags/*
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+---
+kind: pipeline
+type: docker
+name: manifest
+platform:
+  os: linux
+  arch: amd64
+steps:
+  - name: push-runtime-manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      spec: manifest-runtime.tmpl
+      ignore_missing: true
+    when:
+      event:
+        - tag
+      instance:
+        - drone-publish.rancher.io
+      ref:
+        - refs/head/master
+        - refs/tags/*
+depends_on:
+  - build-amd64
+  - build-s390x
+...

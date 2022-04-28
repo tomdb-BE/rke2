@@ -3,8 +3,8 @@ package cmds
 import (
 	"strings"
 
-	"github.com/rancher/k3s/pkg/cli/cmds"
-	"github.com/rancher/k3s/pkg/configfilearg"
+	"github.com/k3s-io/k3s/pkg/cli/cmds"
+	"github.com/k3s-io/k3s/pkg/configfilearg"
 	"github.com/rancher/rke2/pkg/rke2"
 	"github.com/rancher/wrangler/pkg/slice"
 	"github.com/sirupsen/logrus"
@@ -103,13 +103,14 @@ var (
 		"resolv-conf":                       copy,
 		"flannel-iface":                     drop,
 		"flannel-conf":                      drop,
+		"flannel-ipv6-masq":                 drop,
 		"kubelet-arg":                       copy,
 		"kube-proxy-arg":                    copy,
 		"rootless":                          drop,
 		"agent-token":                       copy,
 		"agent-token-file":                  copy,
 		"server":                            copy,
-		"secrets-encryption":                copy,
+		"secrets-encryption":                hide,
 		"no-flannel":                        drop,
 		"no-deploy":                         drop,
 		"cluster-secret":                    drop,

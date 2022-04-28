@@ -47,46 +47,6 @@ CONTAINERD_HTTPS_PROXY=http://your-proxy.example.com:8888
 CONTAINERD_NO_PROXY=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.svc,.cluster.local
 ```
 
-## Secrets Encryption Config
-
-RKE2 supports encrypting Secrets at rest, and will do the following automatically:
-
-- Generate an AES-CBC key
-- Generate an encryption config file with the generated key:
-
-```yaml
-{
-  "kind": "EncryptionConfiguration",
-  "apiVersion": "apiserver.config.k8s.io/v1",
-  "resources": [
-    {
-      "resources": [
-        "secrets"
-      ],
-      "providers": [
-        {
-          "aescbc": {
-            "keys": [
-              {
-                "name": "aescbckey",
-                "secret": "xxxxxxxxxxxxxxxxxxx"
-              }
-            ]
-          }
-        },
-        {
-          "identity": {}
-        }
-      ]
-    }
-  ]
-}
-```
-
-- Pass the config to the Kubernetes APIServer as encryption-provider-config
-
-Once enabled any created secret will be encrypted with this key. Note that if you disable encryption then any encrypted secrets will not be readable until you enable encryption again using the same key.
-
 ## Node Labels and Taints
 
 RKE2 agents can be configured with the options `node-label` and `node-taint` which adds a label and taint to the kubelet. The two options only add labels and/or taints at registration time, and can only be added once and not removed after that through rke2 commands.
@@ -102,8 +62,6 @@ Agents register with the server using the cluster secret portion of the join tok
 Note: Prior to RKE2 v1.20.2 servers stored passwords on disk at `/var/lib/rancher/rke2/server/cred/node-passwd`.
 
 If the `/etc/rancher/node` directory of an agent is removed, the password file should be recreated for the agent prior to startup, or the entry removed from the server or Kubernetes cluster (depending on the RKE2 version).
-
-A unique node ID can be appended to the hostname by launching RKE2 servers or agents using the `--with-node-id` flag.
 
 ## Starting the Server with the Installation Script
 
@@ -128,7 +86,6 @@ To disable any of the bundled system charts, set the `disable` parameter in the 
 - `rke2-canal`
 - `rke2-coredns`
 - `rke2-ingress-nginx`
-- `rke2-kube-proxy`
 - `rke2-metrics-server`
 
 Note that it is the cluster operator's responsibility to ensure that components are disabled or replaced with care, as the server charts play important roles in cluster operability.  Refer to the [architecture overview](architecture/architecture.md#server-charts) for more information on the individual system charts role within the cluster.
@@ -244,4 +201,3 @@ The following options are available under the `server` sub-command for RKE2. The
    --cloud-controller-manager-extra-env value    (components) cloud-controller-manager extra environment variables [$RKE2_CLOUD_CONTROLLER_MANAGER_EXTRA_ENV]
 ```
 
-In order to specify multiple environment variables for the same component, specify the flag multiple times.

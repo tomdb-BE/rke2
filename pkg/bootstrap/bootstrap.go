@@ -1,9 +1,11 @@
 package bootstrap
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,11 +19,11 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
+	"github.com/k3s-io/k3s/pkg/cli/cmds"
+	"github.com/k3s-io/k3s/pkg/daemons/agent"
+	daemonconfig "github.com/k3s-io/k3s/pkg/daemons/config"
+	"github.com/k3s-io/k3s/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/rancher/k3s/pkg/cli/cmds"
-	"github.com/rancher/k3s/pkg/daemons/agent"
-	daemonconfig "github.com/rancher/k3s/pkg/daemons/config"
-	"github.com/rancher/k3s/pkg/util"
 	"github.com/rancher/rke2/pkg/images"
 	"github.com/rancher/wharfie/pkg/credentialprovider/plugin"
 	"github.com/rancher/wharfie/pkg/extract"
@@ -253,14 +255,15 @@ func preloadBootstrapFromRuntime(imagesDir string, resolver *images.Resolver) (v
 func setChartValues(manifestsDir string, nodeConfig *daemonconfig.Node, cfg cmds.Agent) error {
 	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, schemes.All, schemes.All, json.SerializerOptions{Yaml: true, Pretty: true, Strict: true})
 	chartValues := map[string]string{
-		"global.clusterCIDR":           util.JoinIPNets(nodeConfig.AgentConfig.ClusterCIDRs),
-		"global.clusterCIDRv4":         util.JoinIP4Nets(nodeConfig.AgentConfig.ClusterCIDRs),
-		"global.clusterCIDRv6":         util.JoinIP6Nets(nodeConfig.AgentConfig.ClusterCIDRs),
-		"global.clusterDNS":            util.JoinIPs(nodeConfig.AgentConfig.ClusterDNSs),
-		"global.clusterDomain":         nodeConfig.AgentConfig.ClusterDomain,
-		"global.rke2DataDir":           cfg.DataDir,
-		"global.serviceCIDR":           util.JoinIPNets(nodeConfig.AgentConfig.ServiceCIDRs),
-		"global.systemDefaultRegistry": nodeConfig.AgentConfig.SystemDefaultRegistry,
+		"global.clusterCIDR":                  util.JoinIPNets(nodeConfig.AgentConfig.ClusterCIDRs),
+		"global.clusterCIDRv4":                util.JoinIP4Nets(nodeConfig.AgentConfig.ClusterCIDRs),
+		"global.clusterCIDRv6":                util.JoinIP6Nets(nodeConfig.AgentConfig.ClusterCIDRs),
+		"global.clusterDNS":                   util.JoinIPs(nodeConfig.AgentConfig.ClusterDNSs),
+		"global.clusterDomain":                nodeConfig.AgentConfig.ClusterDomain,
+		"global.rke2DataDir":                  cfg.DataDir,
+		"global.serviceCIDR":                  util.JoinIPNets(nodeConfig.AgentConfig.ServiceCIDRs),
+		"global.systemDefaultRegistry":        nodeConfig.AgentConfig.SystemDefaultRegistry,
+		"global.cattle.systemDefaultRegistry": nodeConfig.AgentConfig.SystemDefaultRegistry,
 	}
 
 	files := map[string]os.FileInfo{}
@@ -295,13 +298,13 @@ func setChartValues(manifestsDir string, nodeConfig *daemonconfig.Node, cfg cmds
 // If the file cannot be decoded as a HelmChart, it is silently skipped. Any other IO error is considered
 // a failure.
 func rewriteChart(fileName string, info os.FileInfo, chartValues map[string]string, serializer *json.Serializer) error {
-	bytes, err := ioutil.ReadFile(fileName)
+	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read manifest %s", fileName)
 	}
 
 	// Ignore manifest if it cannot be decoded
-	obj, _, err := serializer.Decode(bytes, nil, nil)
+	obj, _, err := serializer.Decode(b, nil, nil)
 	if err != nil {
 		logrus.Debugf("Failed to decode manifest %s: %s", fileName, err)
 		return nil
@@ -321,21 +324,37 @@ func rewriteChart(fileName string, info os.FileInfo, chartValues map[string]stri
 		chart.Spec.Set = map[string]intstr.IntOrString{}
 	}
 
+	var changed bool
 	for k, v := range chartValues {
-		chart.Spec.Set[k] = intstr.FromString(v)
+		val := intstr.FromString(v)
+		if cur, ok := chart.Spec.Set[k]; ok {
+			curBytes, _ := cur.MarshalJSON()
+			newBytes, _ := val.MarshalJSON()
+			if bytes.Equal(curBytes, newBytes) {
+				continue
+			}
+		}
+		changed = true
+		chart.Spec.Set[k] = val
+	}
+
+	if !changed {
+		logrus.Infof("No cluster configuration value changes necessary for HelmChart %s", fileName)
+		return nil
+	}
+
+	var buf bytes.Buffer
+	if err := serializer.Encode(chart, &buf); err != nil {
+		return errors.Wrapf(err, "Failed to serialize modified HelmChart %s", fileName)
 	}
 
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_TRUNC, info.Mode())
 	if err != nil {
 		return errors.Wrapf(err, "Unable to open HelmChart %s", fileName)
 	}
+	defer f.Close()
 
-	if err := serializer.Encode(chart, f); err != nil {
-		_ = f.Close()
-		return errors.Wrapf(err, "Failed to serialize modified HelmChart %s", fileName)
-	}
-
-	if err := f.Close(); err != nil {
+	if _, err := io.Copy(f, &buf); err != nil {
 		return errors.Wrapf(err, "Failed to write modified HelmChart %s", fileName)
 	}
 

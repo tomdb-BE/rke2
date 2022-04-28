@@ -55,5 +55,5 @@ fi
 
 # assert that rke2 is linked to goboring
 if type -a go-assert-boring.sh >/dev/null 2>&1; then
-    echo "Skipping for arm64"
+  go-assert-boring.sh bin/${PROG}
 fi

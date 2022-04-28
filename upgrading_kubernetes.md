@@ -1,17 +1,26 @@
 # Upgrade Kubernetes Process
 
-From time to time we need to update the version of Kubernetes used by RKE2. This document serves as a how-to for that process and constitutes a "release". The following steps are laid out in order.
+From time to time, we need to update the version of Kubernetes used by RKE2. This document serves as a how-to for said process and elaborates on what constitutes a "release". The steps described in the document are laid out in order.
 
-This process will need to be done any time a new release is needed.
+**NOTE:** This process will be needed whenever a new release is required, even when no new Kubernetes release is available. A handy checklist can be found [here](#release-process-overview).
 
-A handy checklist can be found [here](#release-checklist).
+- [Upgrade Kubernetes Process](#upgrade-kubernetes-process)
+  - [QA Releases](#qa-releases)
+  - [Hardened Kubernetes](#hardened-kubernetes)
+  - [Update RKE2](#update-rke2)
+  - [RKE2 Release RC](#rke2-release-rc)
+    - [RKE2 Packaging](#rke2-packaging)
+    - [Primary Release](#primary-release)
+    - [Release Notes](#release-notes)
+      - [Packaged Components](#packaged-components)
+  - [Update Rancher KDM](#update-rancher-kdm)
+    - [Promoting to Stable](#promoting-to-stable)
+    - [Updating Channel Server](#updating-channel-server)
+  - [Release Process Overview](#release-process-overview)
 
 ## QA Releases
 
-If QA requires a release candidate (RC) for testing efforts before a Kubernetes patch is available, a new RC should be created with the most current
-Kubernetes release. For example, if QA wants a release for v1.20.11 before the Kubernetes patch, and the most recent release is v1.20.10+rke2r1, 
-a tag should be cut for v1.20.10-rc1+rke2r2 release. Note that doing so will also require tagging v1.20.10+rke2r2
-in image-build-kubernetes and bumping versions across rke2-charts and rke2, as if preparing for a full release.
+If QA requires a release candidate (RC) for testing efforts before a Kubernetes patch is available, a new RC should be created with the most current Kubernetes release. For example, if QA wants a release for v1.23.5 before the Kubernetes patch, and the most recent release is v1.23.5+rke2r1, a tag should be cut for v1.23.5-rc1+rke2r1 release. Note that doing so will also require tagging v1.23.5+rke2r1 in image-build-kubernetes and bumping versions across rke2-charts and rke2, as if preparing for a full release.
 
 ## Hardened Kubernetes
 
@@ -22,19 +31,18 @@ Create a new release tag at the [image-build-kubernetes](https://github.com/ranc
 * Click "Releases"
 * Click "Draft a new release"
 * Enter the new release version (the RKE2 Kubernetes version), appended with `-buildYYYYMMdd`, into the "Tag version" box.  **NOTE** The build system is in UTC. The command `TZ=utc date '+-build%Y%m%d'` can be used to get the correct format.
-* When converting the RKE2 version to the Kubernetes version, use dash instead of plus, and do not include any alpha/beta/rc components. For example, if preparing for RKE2 `v1.21.4+rke2r2` before 5 PM Pacific on Friday, August 27th 2021 you would tag `v1.21.4-rke2r2-build20210829`
+* When converting the RKE2 version to the Kubernetes version, use dash instead of plus, and do not include any alpha/beta/rc components. For example, if preparing for RKE2 `v1.23.5+rke2r1` before 5 PM Pacific on Friday, August 27th 2021 you would tag `v1.23.5-rke2r1-build20210829`
 * Click the "Publish release" button. 
 
-This will take a few minutes for CI to run but upon completion, a new image will be available in [Dockerhub](https://hub.docker.com/r/rancher/hardened-kubernetes).
-
+This will take a few minutes for [CI](https://drone-pr.rancher.io/rancher/image-build-kubernetes) to run but upon completion, a new image will be available in [Dockerhub](https://hub.docker.com/r/rancher/hardened-kubernetes).
 
 ## Update RKE2
 
 The following files have references that will need to be updated in the respective locations. Replace the found version with the desired version. There are also references in documentation that should be updated and kept in sync. 
 
-* Dockerfile: `FROM rancher/k3s:v1.22.4-k3s1 AS k3s`
-* version.sh: `KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.22.4}`
-* In v1.19 and older, pkg/images/image.go: `KubernetesVersion== "v1.19.15-rke2r1-build20210916"`
+* Dockerfile: `FROM rancher/hardened-kubernetes:v1.23.5-rke2r1-build20220217 AS kubernetes`
+* version.sh: `KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.23.5}`
+* In v1.21, kube-proxy is still in use an needs to be updated in the Dockerfile. Update the line: `RUN CHART_VERSION="v1.21.10-build2021041301"     CHART_FILE=/charts/rke2-kube-proxy.yaml` to the relevant RKE2 Kubernetes build version.
 * go.mod: ensure that the associated k3s version is used.
 
 Once these changes are made, submit a PR for review and let CI complete. When CI is finished and upon getting 1 approval, merge the PR. CI will run for the master merge. 
@@ -45,22 +53,26 @@ Next, we need to create a release candidate (RC). The Drone (CI) process that bu
 
 * Click "Releases"
 * Click "Draft new release"
+* Select the target branch
 * Enter the desired version into the "Tag version" box. 
-    * Example tag: `v1.21.4+rke2r2`
-    * **NOTE** Make sure to create the tag against the correct release branch. In the example above, that would map to release branch `release-1.21`.
+    * Example tag: `v1.23.5-rc1+rke2r1`
+    * **NOTE** Make sure to create the tag against the correct release branch. In the example above, that would map to release branch `release-1.23`.
+
+Ensure "prerelease" checkbox is selected.
 
 CI will run and build the release assets as well as kick off an image build for [RKE2 Upgrade images](https://hub.docker.com/r/rancher/rke2-upgrade/tags?page=1&ordering=last_updated).
 
 _**Note: Once an RC is released for QA, the release branch associated with the RC is now considered frozen until the final release is complete. If additional PRs need to get merged in after an RC, but before the final release, you should notify the RKE2 team of this immediately. After merging, an additional RC will need to be released for QA.**_
 
-### RKE2 Packaging
+### RKE2 RC RPM Packaging
 
 Along with creating a new RKE2 release, we need to trigger a new build of the associated RPM. These are found in the [rke2-packaging](https://github.com/rancher/rke2-packaging) repository. We need to create a new release here and the process is nearly identical to the above steps. The Drone (CI) process that builds the release itself can be monitored [here](https://drone-publish.rancher.io/rancher/rke2-packaging/).
 
 * Click "Releases"
 * Click "Draft new release"
+* Select the target branch
 * Enter the desired version into the "Tag version" box. 
-    * Example tag: `v1.21.4-rc1+rke2r1.testing.0`
+    * Example tag: `v1.23.5-rc1+rke2r1.testing.0`
     * The first part of the tag here must match the tag created in the RKE2 repo.
 
 When CI completes, let QA know so they can perform testing.
@@ -72,23 +84,37 @@ Once QA signs off on the RC, it's time to cut the primary release. Go to the [rk
 * Click "Releases"
 * Click "Draft new release"
 * Enter the desired version into the "Tag version" box. 
-    * Example tag: `v1.21.4+rke2r1`
+    * Example tag: `v1.23.5+rke2r1`
 
-Leave the release as "prerelease". This will be unchecked as soon as CI completes successfully.
+Ensure "prerelease" checkbox is selected.
 
 Once complete, the process is repeated in the [rke2-packaging](https://github.com/rancher/rke2-packaging) repository.
 
 * Click "Releases"
 * Click "Draft new release"
 * Enter the desired version into the "Tag version" box. 
-    * Example tag: `v1.21.4+rke2r1.testing.0`
+    * Example tag: `v1.23.5+rke2r1.testing.0`
     * The first part of the tag here must match the tag created in the RKE2 repo.
 
 Make sure that CI passes. This is for RPM availability in the testing channel.
 
-Once complete, perform the steps above again however this time, use the tag "latest" tag. E.g. `v1.21.4+rke2r1.latest.0`.
+Once complete, perform the steps below for the "**latest**" RPMs.
 
-We choose "latest" here since we want to wait at least 24 hours in case the community finds an issue. Patches will need at least 24 hours. We'll then wait up to 7 days until marking the release as "stable".
+* Click "Releases"
+* Click "Draft new release"
+* Enter the desired version into the "Tag version" box. 
+    * Example tag: `v1.23.5+rke2r1.latest.0`
+    * The first part of the tag here must match the tag created in the RKE2 repo.
+
+We will wait at least 24 hours in case the community finds an issue. Patches will need at least 24 hours. 
+
+We then create the "**stable**" RPMs. Follow the steps below.
+
+* Click "Releases"
+* Click "Draft new release"
+* Enter the desired version into the "Tag version" box. 
+    * Example tag: `v1.23.5+rke2r1.stable.0`
+    * The first part of the tag here must match the tag created in the RKE2 repo.
 
 ### Release Notes
 
@@ -99,11 +125,10 @@ The 2 primary sections of the release notes are the "Changes since ..." and the 
 #### Packaged Components
 It can be confusing to track where each number for a component is getting pulled from. Below provides
 some locations to check component versions:
+
 - Etcd: Look in `scripts/version` for `ETCD_VERSION`.
 - Containerd: Look in `Dockerfile` for `rancher/hardened-containerd`.
 - Runc: Look in `Dockerfile` for `rancher/hardened-runc`.
-- CNI Plugins: Look in `scripts/build-images` for what version of `rancher/hardened-calico` is used,
- then look at the [image-build-calico](https://github.com/rancher/image-build-calico/) repo and in the `Dockerfile` the `CNI_PLUGINS_VERSION` (old version) or `CNI_IMAGE` (new version) should be listed.
 - Flannel: Look in `scripts/build-images` for `rancher/hardened-flannel`.
 - Calico: Look in `scripts/build-images` for `rancher/hardened-calico`.
 - Metrics-server: Look in `scripts/build-images` for `rancher/hardened-k8s-metrics-server`.
@@ -119,15 +144,15 @@ Be sure to review the rest of the sections as some of them may become irrelevant
 
 This step is specific to Rancher and serves to update Rancher's [Kontainer Driver Metadata](https://github.com/rancher/kontainer-driver-metadata/).
 
-Create PRs in the [KDM](https://github.com/rancher/kontainer-driver-metadata/) `dev-2.6` and `dev-2.5` branches to update the kubernetes versions in `channels-rke2.yaml`. 
+Create PRs in the [KDM](https://github.com/rancher/kontainer-driver-metadata/) `dev-2.6` and `dev-2.5` branches to update the Kubernetes versions in `channels-rke2.yaml`. 
 * The PR should consist of two commits:
-    1. Changes made to `channels-rke2.yaml` to update the kubernetes versions.
+    1. Changes made to `channels-rke2.yaml` to update the Kubernetes versions.
     2. Run `go generate` and commit the changes this caused to data/data.json. Title this second commit "go generate".
-* Please note if this is a new minor release of kubernetes, then a new entry will need to be created in `channels-rke2.yaml`. Ensure to set the min/max versions accordingly. If you are not certain what they should be, reach out to the team for input on this as it will depend on what Rancher will be supporting.
+* Please note if this is a new minor release of Kubernetes, then a new entry will need to be created in `channels-rke2.yaml`. Ensure to set the min/max versions accordingly. If you are not certain what they should be, reach out to the team for input on this as it will depend on what Rancher will be supporting.
 
-Entries that include `charts`, `serverArgs`, and/or `agentArgs` fields may not be altered or removed once they have been published to a release branch. Once a version has been released, a new entry must be added following it. It is possible to build off the `charts`, `serverArgs`, and `agentArgs` values defined in other entries using [yaml anchors](https://github.com/yaml/libyaml/blob/0.2.5/examples/anchors.yaml). For example, v1.21.4 has its charts defined as follows:
+Entries that include `charts`, `serverArgs`, and/or `agentArgs` fields may not be altered or removed once they have been published to a release branch. Once a version has been released, a new entry must be added following it. It is possible to build off the `charts`, `serverArgs`, and `agentArgs` values defined in other entries using [yaml anchors](https://github.com/yaml/libyaml/blob/0.2.5/examples/anchors.yaml). For example, v1.23.5 has its charts defined as follows:
 ```
-- version: v1.21.4+rke2r2
+- version: v1.23.5+rke2r1
 minChannelServerVersion: v2.6.0-alpha1
 maxChannelServerVersion: v2.6.99
 ...
@@ -159,11 +184,11 @@ harvester-cloud-provider:
 * To easily find chart differences, use the following:
     ```
     git fetch upstream --tags
-    git diff v1.21.4+rke2r2..v1.21.5+rke2r1 -- Dockerfile
+    git diff v1.23.5+rke2r2..v1.21.5+rke2r1 -- Dockerfile
     ```
 * To easily compare server and agent arguments, use the following:
     ```
-    curl https://github.com/rancher/rke2/releases/download/v1.21.4+rke2r2/rke2.linux-amd64 -L -o rke2-r1
+    curl https://github.com/rancher/rke2/releases/download/v1.23.5+rke2r2/rke2.linux-amd64 -L -o rke2-r1
     curl https://github.com/rancher/rke2/releases/download/v1.21.5+rke2r1/rke2.linux-amd64 -L -o rke2-r2
     chmod u+x rke2-r*
 
@@ -195,9 +220,70 @@ After promoting the release to stable, we need to update the channel server. Thi
 * Update the line: `latest: <release>` to be the recent release. e.g. `v1.21.5+rke2r1`.
 * Verify updated in the JSON output from a call [here](https://update.rke2.io/v1-release/channels).
 
-## Release Process
+### Checking downstream components
 
-Process overview. Be sure to reference the sections above for further detail on each step.
+Every RKE2 release, from RC to primary, triggers the release process of the downstream components listed in the `scripts/dispatch` script. It is worth ensuring each of them successfully finishes.
+
+- system-agent-installer-rke2
+  - [Repository](https://github.com/rancher/system-agent-installer-rke2)
+  - [Drone publish job](https://drone-publish.rancher.io/rancher/system-agent-installer-rke2)
+- rke2-upgrade
+  - [Repository](https://github.com/rancher/rke2-upgrade)
+  - [Drone publish job](https://drone-publish.rancher.io/rancher/rke2-upgrade)
+
+## Release Process Overview
+
+```mermaid
+flowchart TB;
+ prerelease([Create cut release ticket])
+
+ subgraph rc[RKE2 Release Candidate Flow]
+   direction LR;
+   cut_k8s([Cut hardened<br/>Kubernetes release])-->|For Kubernetes<br/>1.20 and 1.21|update_kubeproxy([Update kubeproxy<br/>in RKE2-charts]);
+   update_kubeproxy-->|Once RKE2-charts<br/>index refreshes|update_rke_refs;
+   cut_k8s-->|From Kubernetes<br/>1.22 onwards|update_rke_refs([Update RKE2 components<br/>version references]);
+   update_rke_refs-->|Once RKE2 PR's<br/>are approved|cut_rke2_rc([Cut RKE2<br/>release candidate]);
+   cut_rke2_rc-->cut_rke2_rc_rpm([Cut RKE2<br/>testing rpms]);
+ end
+
+ subgraph kdm_rc[Rancher KDM RC Release Flow]
+   direction LR;
+   kdm_channel_rc([Update RKE RC release references])-->kdm_generated_data_rc([Update KDM generated data]);
+ end
+
+ subgraph primary_release[RKE2 Primary Release Flow]
+   direction LR;
+   cut_rke([Cut RKE2 primary pre-release])-->cut_rke2_testing_rpm([Cut RKE2 testing rpms]);
+   cut_rke2_testing_rpm-->|Once QA approves<br/>testing rpms|cut_rke2_latest_rpm([Cut RKE2 latest rpms]);
+   cut_rke2_latest_rpm-->update_release_notes([Update release notes]);
+ end
+
+ subgraph kdm_stable[Rancher KDM Stable Release Flow]
+   direction LR;
+   kdm_channel_stable([Update RKE release references])-->kdm_generated_data_stable([Update KDM generated data]);
+ end
+
+ subgraph stable_release[RKE2 Stable Release Flow]
+   direction LR;
+   cut_rke_stable_rpm([Cut RKE2 stable rpm])-->GA([Set RKE2 releases as generally available])
+   GA-->rke_stable([Update RKE2 channel server configurations]);
+ end
+
+ prerelease-.->|Once Kubernetes release<br/>is generally available|rc;
+ rc-->kdm_rc;
+ kdm_rc-->|Once QA approves RKE2 release candidates|primary_release;
+ primary_release-->kdm_stable;
+ kdm_stable-->|Once QA approves RKE2 releases|stable_release;
+ stable_release-->postrelease([Close cut release ticket])
+
+ classDef edgeLabel fill:#e8e8e8,color:#333,background-color:#e8e8e8;
+ classDef default fill:#fff,stroke:#35b9ab,stroke-width:5px,color:#333;
+ classDef section fill:#fff,stroke:#bbb,stroke-width:1px,color:#173f4f;
+
+ class rc,primary_release,kdm_rc,kdm_stable,stable_release section;
+```
+
+Be sure to reference the sections above for further detail on each step.
 
 - Tag new Hardened Kubernetes release
 - Update Helm chart versions

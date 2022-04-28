@@ -3,22 +3,23 @@ package rke2
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/k3s-io/k3s/pkg/agent/config"
+	containerdk3s "github.com/k3s-io/k3s/pkg/agent/containerd"
+	"github.com/k3s-io/k3s/pkg/cli/agent"
+	"github.com/k3s-io/k3s/pkg/cli/cmds"
+	"github.com/k3s-io/k3s/pkg/cli/etcdsnapshot"
+	"github.com/k3s-io/k3s/pkg/cli/server"
+	daemonconfig "github.com/k3s-io/k3s/pkg/daemons/config"
+	"github.com/k3s-io/k3s/pkg/daemons/executor"
+	rawServer "github.com/k3s-io/k3s/pkg/server"
 	"github.com/pkg/errors"
-	"github.com/rancher/k3s/pkg/agent/config"
-	containerdk3s "github.com/rancher/k3s/pkg/agent/containerd"
-	"github.com/rancher/k3s/pkg/cli/agent"
-	"github.com/rancher/k3s/pkg/cli/cmds"
-	"github.com/rancher/k3s/pkg/cli/etcdsnapshot"
-	"github.com/rancher/k3s/pkg/cli/server"
-	daemonconfig "github.com/rancher/k3s/pkg/daemons/config"
-	"github.com/rancher/k3s/pkg/daemons/executor"
-	rawServer "github.com/rancher/k3s/pkg/server"
 	"github.com/rancher/rke2/pkg/controllers/cisnetworkpolicy"
 	"github.com/rancher/rke2/pkg/images"
 	"github.com/sirupsen/logrus"
@@ -127,14 +128,10 @@ func EtcdSnapshot(clx *cli.Context, cfg Config) error {
 
 func setup(clx *cli.Context, cfg Config, isServer bool) error {
 	dataDir := clx.String("data-dir")
-	disableETCD := clx.Bool("disable-etcd")
-	disableScheduler := clx.Bool("disable-scheduler")
-	disableAPIServer := clx.Bool("disable-apiserver")
-	disableControllerManager := clx.Bool("disable-controller-manager")
-	disableCloudControllerManager := clx.Bool("disable-cloud-controller")
 	clusterReset := clx.Bool("cluster-reset")
+	clusterResetRestorePath := clx.String("cluster-reset-restore-path")
 
-	ex, err := initExecutor(clx, cfg, dataDir, disableETCD, isServer)
+	ex, err := initExecutor(clx, cfg, isServer)
 	if err != nil {
 		return err
 	}
@@ -151,11 +148,22 @@ func setup(clx *cli.Context, cfg Config, isServer bool) error {
 		os.Remove(ForceRestartFile(dataDir))
 	}
 	disabledItems := map[string]bool{
-		"kube-apiserver":           disableAPIServer || forceRestart,
-		"kube-scheduler":           disableScheduler || forceRestart,
-		"kube-controller-manager":  disableControllerManager || forceRestart,
-		"cloud-controller-manager": disableCloudControllerManager || forceRestart,
-		"etcd":                     disableETCD || forceRestart,
+		"cloud-controller-manager": forceRestart || clx.Bool("disable-cloud-controller"),
+		"etcd":                     forceRestart || clx.Bool("disable-etcd"),
+		"kube-apiserver":           forceRestart || clx.Bool("disable-apiserver"),
+		"kube-controller-manager":  forceRestart || clx.Bool("disable-controller-manager"),
+		"kube-proxy":               forceRestart || clx.Bool("disable-kube-proxy"),
+		"kube-scheduler":           forceRestart || clx.Bool("disable-scheduler"),
+	}
+	// adding force restart file when cluster reset restore path is passed
+	if clusterResetRestorePath != "" {
+		forceRestartFile := ForceRestartFile(dataDir)
+		if err := os.MkdirAll(filepath.Base(forceRestartFile), 0755); err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(forceRestartFile, []byte(""), 0600); err != nil {
+			return err
+		}
 	}
 	return removeOldPodManifests(dataDir, disabledItems, clusterReset)
 }
@@ -220,9 +228,9 @@ func removeOldPodManifests(dataDir string, disabledItems map[string]bool, cluste
 		containerdErr := make(chan error)
 
 		// start containerd
-		go startContainerd(dataDir, containerdErr, containerdCmd)
+		go startContainerd(ctx, dataDir, containerdErr, containerdCmd)
 		// start kubelet
-		go startKubelet(dataDir, kubeletErr, kubeletCmd)
+		go startKubelet(ctx, dataDir, kubeletErr, kubeletCmd)
 		// check for any running containers from the disabled items list
 		go checkForRunningContainers(ctx, disabledItems, kubeletErr, containerdErr)
 
@@ -262,7 +270,12 @@ func isCISMode(clx *cli.Context) bool {
 	return profile == CISProfile15 || profile == CISProfile16
 }
 
-func startKubelet(dataDir string, errChan chan error, cmd *exec.Cmd) {
+func startKubelet(ctx context.Context, dataDir string, errChan chan error, cmd *exec.Cmd) {
+	if err := containerdk3s.WaitForContainerd(ctx, containerdSock); err != nil {
+		logrus.Errorf("Failed to wait for containerd startup: %v", err)
+		return
+	}
+
 	args := []string{
 		"--fail-swap-on=false",
 		"--container-runtime=remote",
@@ -280,7 +293,7 @@ func startKubelet(dataDir string, errChan chan error, cmd *exec.Cmd) {
 	errChan <- cmd.Run()
 }
 
-func startContainerd(dataDir string, errChan chan error, cmd *exec.Cmd) {
+func startContainerd(ctx context.Context, dataDir string, errChan chan error, cmd *exec.Cmd) {
 	args := []string{
 		"-c", filepath.Join(dataDir, "agent", "etc", "containerd", "config.toml"),
 		"-a", containerdSock,

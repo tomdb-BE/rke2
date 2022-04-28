@@ -33,6 +33,7 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-canal.txt
     ${REGISTRY}/${REPO}/hardened-flannel:${FLANNEL_VERSION}-${IMAGE_BUILD_VERSION}
 EOF
 
+if [ "${GOARCH}" != "s390x" ]; then
 xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
     ${REGISTRY}/${REPO}/mirrored-cilium-cilium:${CILIUM_VERSION}
     ${REGISTRY}/${REPO}/mirrored-cilium-operator-aws:${CILIUM_VERSION}
@@ -85,6 +86,6 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-harvester.txt
     ${REGISTRY}/${REPO}/longhornio-csi-provisioner:${LONGHORN_PROVISIONER_VERSION}
     ${REGISTRY}/${REPO}/longhornio-csi-attacher:${LONGHORN_ATTACHER_VERSION}
 EOF
-
+fi
 # Continue to provide a legacy airgap archive set with the default CNI images
 cat build/images-core.txt build/images-canal.txt > build/images.txt
