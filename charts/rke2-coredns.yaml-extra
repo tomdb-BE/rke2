@@ -4,5 +4,5 @@
       repository: ${REPO}/hardened-coredns
     autoscaler:
       image:
-        tag: ${CHART_TAG}
+        tag: ${CHART_TAG_AUTOSCALER}
         repository: ${REPO}/hardened-cluster-autoscaler

@@ -120,6 +120,7 @@ ARG CALICO_OPERATOR_VERSION
 ARG CALICO_CRD_VERSION
 ARG FLANNEL_VERSION
 ARG COREDNS_VERSION
+ARG CLUSTER_AUTOSCALER_VERSION
 ARG CHART_TAG_ARCH
 ARG NGINX_INGRESS_VERSION
 ARG NGINX_INGRESS_DEFAULT_BACKEND_VERSION
@@ -150,7 +151,7 @@ RUN REPO=${REPO}/mirrored-cilium             CHART_VERSION=${CILIUM_CHART_VERSIO
 RUN REPO=${REPO}                             CHART_VERSION=${CANAL_CHART_VERSION}          CHART_TAG=${HARDENED_CALICO_VERSION} CHART_TAG_FLANNEL=${FLANNEL_VERSION}                       CHART_FILE=/charts/rke2-canal.yaml          CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${CALICO_CHART_VERSION}         CHART_TAG=${CALICO_VERSION}          CHART_TAG_OPERATOR=${CALICO_OPERATOR_VERSION}              CHART_FILE=/charts/rke2-calico.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${CALICO_CRD_CHART_VERSION}     CHART_TAG=${CALICO_CRD_VERSION}                                                                 CHART_FILE=/charts/rke2-calico-crd.yaml     CHART_BOOTSTRAP=true   /charts/build-chart.sh
-RUN REPO=${REPO}                             CHART_VERSION=${COREDNS_CHART_VERSION}        CHART_TAG=${COREDNS_VERSION}                                                                    CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
+RUN REPO=${REPO}                             CHART_VERSION=${COREDNS_CHART_VERSION}        CHART_TAG=${COREDNS_VERSION}         CHART_TAG_AUTOSCALER=${CLUSTER_AUTOSCALER_VERSION}         CHART_FILE=/charts/rke2-coredns.yaml        CHART_BOOTSTRAP=true   /charts/build-chart.sh
 RUN REPO=${REPO}/nginx-ingress-controller    CHART_VERSION=${NGINX_INGRESS_CHART_VERSION}  CHART_TAG=${NGINX_INGRESS_VERSION}   CHART_TAG_BACKEND=${NGINX_INGRESS_DEFAULT_BACKEND_VERSION} CHART_FILE=/charts/rke2-ingress-nginx.yaml  CHART_BOOTSTRAP=false  /charts/build-chart.sh
 RUN REPO=${REPO}/hardened-k8s-metrics-server CHART_VERSION=${METRICS_SERVER_CHART_VERSION} CHART_TAG=${METRICS_SERVER_VERSION}                                                             CHART_FILE=/charts/rke2-metrics-server.yaml CHART_BOOTSTRAP=false  /charts/build-chart.sh
 RUN REPO=${REPO}                             CHART_VERSION=${MULTUS_CHART_VERSION}         CHART_TAG=${MULTUS_VERSION}          CHART_TAG_CNI_PLUGIN=${CNI_PLUGINS_VERSION}                CHART_FILE=/charts/rke2-multus.yaml         CHART_BOOTSTRAP=true   /charts/build-chart.sh
