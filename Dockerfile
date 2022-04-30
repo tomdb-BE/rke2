@@ -26,7 +26,7 @@ RUN set -x \
     tar \
     yq
 
-RUN if [ "${ARCH}" != "s390x" ]; then \
+RUN if [ "${ARCH}" != "s390x" ] &&  [ "${ARCH}" != "arm64" ]; then \
     	apk --no-cache add mingw-w64-gcc; \
     fi
 
