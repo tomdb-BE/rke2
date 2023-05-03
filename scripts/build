@@ -6,11 +6,11 @@ cd $(dirname $0)/..
 source ./scripts/version.sh
 mkdir -p build/images
 ./scripts/build-binary
-./scripts/build-windows-binary
+[ "${GOARCH}" != "arm64" ] && ./scripts/build-windows-binary
 ./scripts/build-images
-./scripts/build-windows-images
+[ "${GOARCH}" != "arm64" ] && ./scripts/build-windows-images
 ./scripts/package-bundle
-./scripts/package-windows-bundle
+[ "${GOARCH}" != "arm64" ] && ./scripts/package-windows-bundle
 ./scripts/dev-runtime-image
 ./scripts/dev-rpm
 ./scripts/build-image-test

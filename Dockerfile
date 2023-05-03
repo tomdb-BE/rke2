@@ -1,7 +1,8 @@
 ARG KUBERNETES_VERSION=dev
+ARG REPO=rancher
 
 # Build environment
-FROM rancher/hardened-build-base:v1.20.3b1 AS build
+FROM ${REPO}/hardened-build-base:v1.20.3b1 AS build
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
 RUN set -x \
@@ -20,8 +21,8 @@ RUN set -x \
     tar \
     yq
 
-RUN if [ "${ARCH}" != "s390x" ]; then \
-    	apk --no-cache add mingw-w64-gcc; \
+RUN if [ "${ARCH}" != "s390x" ] && [ "${ARCH}" != "arm64" ]; then \
+        apk --no-cache add mingw-w64-gcc; \
     fi
 
 FROM registry.suse.com/bci/bci-base AS rpm-macros
@@ -138,10 +139,10 @@ RUN rm -vf /charts/*.sh /charts/*.md
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
-FROM rancher/hardened-kubernetes:v1.27.1-rke2r1-build20230418 AS kubernetes
-FROM rancher/hardened-containerd:v1.6.19-k3s1-build20230406 AS containerd
-FROM rancher/hardened-crictl:v1.26.1-build20230406 AS crictl
-FROM rancher/hardened-runc:v1.1.5-build20230406 AS runc
+FROM ${REPO}/hardened-kubernetes:v1.27.1-rke2r1-build20230502 AS kubernetes
+FROM ${REPO}/hardened-containerd:v1.6.19-k3s1-build20230502 AS containerd
+FROM ${REPO}/hardened-crictl:v1.26.1-build20230502 AS crictl
+FROM ${REPO}/hardened-runc:v1.1.5-build20230502 AS runc
 
 FROM scratch AS runtime-collect
 COPY --from=runc \
