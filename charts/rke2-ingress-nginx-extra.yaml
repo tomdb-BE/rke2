@@ -1,0 +1,9 @@
+  valuesContent: |-
+    controller:
+      image:
+        repository: tomdbbe/nginx-ingress-controller
+        tag: "1.5-rancher1"
+    defaultBackend:
+      image:
+        repository: tomdbbe/nginx-ingress-controller-defaultbackend
+        tag: "nginx-1.6.4-hardened4-multiarch"

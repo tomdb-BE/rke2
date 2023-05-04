@@ -1,0 +1,18 @@
+  valuesContent: |-
+    flannel:
+      image:
+        tag: "v0.21.3-build20230503"
+        repository: tomdbbe/hardened-flannel
+    calico:
+      cniImage:
+        tag: "v3.25.0-build20230503"
+        repository: tomdbbe/hardened-calico
+      nodeImage:
+        tag: "v3.25.0-build20230503"
+        repository: tomdbbe/hardened-calico
+      flexvolImage:
+        tag: "v3.25.0-build20230503"
+        repository: tomdbbe/hardened-calico
+      kubeControllerImage:
+        tag: "v3.25.0-build20230503"
+        repository: tomdbbe

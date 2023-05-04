@@ -1,0 +1,4 @@
+  valuesContent: |-
+    image:
+      repository: tomdbbe/hardened-k8s-metrics-server
+      tag: "v0.6.2-build20230503"

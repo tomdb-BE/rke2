@@ -1,0 +1,9 @@
+  valuesContent: |-
+    image:
+      repository: tomdbbe/hardened-multus-cni
+      tag: v3.9.3-build20230504
+       
+    cniplugins:
+      image:
+        repository: tomdbbe/hardened-cni-plugins 
+        tag: v1.0.1-build20230503
