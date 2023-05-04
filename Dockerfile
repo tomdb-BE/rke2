@@ -133,7 +133,7 @@ RUN CHART_VERSION="0.1.1600"                  CHART_FILE=/charts/harvester-csi-d
 RUN CHART_VERSION="1.7.201"                   CHART_FILE=/charts/rke2-snapshot-controller.yaml CHART_BOOTSTRAP=false /charts/build-chart.sh
 RUN CHART_VERSION="1.7.201"                   CHART_FILE=/charts/rke2-snapshot-controller-crd.yaml CHART_BOOTSTRAP=false /charts/build-chart.sh
 RUN CHART_VERSION="1.7.100"                   CHART_FILE=/charts/rke2-snapshot-validation-webhook.yaml CHART_BOOTSTRAP=false /charts/build-chart.sh
-RUN rm -vf /charts/*.sh /charts/*.md
+RUN rm -vf /charts/*.sh /charts/*.md /charts/*-extra.yaml
 
 # rke2-runtime image
 # This image includes any host level programs that we might need. All binaries
