@@ -1,3 +1,4 @@
+ARG REPO=rancher
 FROM alpine:3.17 AS build
 
 RUN apk --no-cache add \
@@ -5,7 +6,7 @@ RUN apk --no-cache add \
     unzip
 
 # Dapper/Drone/CI environment
-FROM rancher/hardened-build-base:v1.20.3b1 AS dapper
+FROM ${REPO}/hardened-build-base:v1.20.3b1 AS dapper
 ENV DAPPER_ENV GODEBUG REPO TAG DRONE_TAG PAT_USERNAME PAT_TOKEN KUBERNETES_VERSION DOCKER_BUILDKIT DRONE_BUILD_EVENT IMAGE_NAME AWS_SECRET_ACCESS_KEY AWS_ACCESS_KEY_ID ENABLE_REGISTRY
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
@@ -51,7 +52,7 @@ RUN mkdir -p rancher
 
 # We use the containerd-shim-runhcs-v1.exe binary from upstream, as it apparently can't be cross-built on Linux
 COPY Dockerfile ./
-RUN CONTAINERD_VERSION=$(grep "rancher/hardened-containerd" Dockerfile | grep ':v' | cut -d '=' -f 2- | grep -oE "([0-9]+)\.([0-9]+)\.([0-9]+)") \
+RUN CONTAINERD_VERSION=$(grep "${REPO}/hardened-containerd" Dockerfile | grep ':v' | cut -d '=' -f 2- | grep -oE "([0-9]+)\.([0-9]+)\.([0-9]+)") \
  && curl -sLO https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-windows-amd64.tar.gz \
  && curl -sLO https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-windows-amd64.tar.gz.sha256sum \
  && sha256sum -c containerd-${CONTAINERD_VERSION}-windows-amd64.tar.gz.sha256sum
@@ -86,7 +87,7 @@ RUN mv kube-proxy.exe rancher/
 RUN curl -sLO https://github.com/projectcalico/calico/releases/download/${CALICO_VERSION}/calico-windows-${CALICO_VERSION}.zip
 RUN curl -sL https://github.com/Microsoft/SDN/raw/master/Kubernetes/windows/hns.psm1 -o rancher/hns.psm1
 
-RUN CONTAINERD_VERSION=$(grep "rancher/hardened-containerd" Dockerfile | grep ':v' | cut -d '=' -f 2- | grep -oE "([0-9]+)\.([0-9]+)\.([0-9]+)") \
+RUN CONTAINERD_VERSION=$(grep "${REPO}/hardened-containerd" Dockerfile | grep ':v' | cut -d '=' -f 2- | grep -oE "([0-9]+)\.([0-9]+)\.([0-9]+)") \
  && tar xvzf containerd-${CONTAINERD_VERSION}-windows-amd64.tar.gz -C rancher/ bin/containerd-shim-runhcs-v1.exe
 RUN tar xzvf crictl-${CRICTL_VERSION}-windows-amd64.tar.gz crictl.exe -C rancher/
 RUN tar xzvf cni-plugins-windows-amd64-${CNI_PLUGIN_VERSION}.tgz ./win-overlay.exe ./host-local.exe -C rancher/
