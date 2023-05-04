@@ -37,7 +37,6 @@ if [ "${GOARCH}" != "s390x" ]; then
 xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
     ${REGISTRY}/rancher/mirrored-cilium-certgen:v0.1.8
     ${REGISTRY}/rancher/mirrored-cilium-cilium:v1.13.0
-    ${REGISTRY}/rancher/mirrored-cilium-cilium-etcd-operator:v2.0.7
     ${REGISTRY}/rancher/mirrored-cilium-clustermesh-apiserver:v1.13.0
     ${REGISTRY}/rancher/mirrored-cilium-hubble-relay:v1.13.0
     ${REGISTRY}/rancher/mirrored-cilium-hubble-ui:v0.10.0
@@ -47,6 +46,11 @@ xargs -n1 -t docker image pull --quiet << EOF > build/images-cilium.txt
     ${REGISTRY}/rancher/mirrored-cilium-operator-generic:v1.13.0
     ${REGISTRY}/${REPO}/hardened-cni-plugins:v1.0.1-build20230503
 EOF
+if [ "${GOARCH}" != "arm64" ]; then
+xargs -n1 -t docker image pull --quiet << EOF >> build/images-cilium.txt
+    ${REGISTRY}/rancher/mirrored-cilium-cilium-etcd-operator:v2.0.7
+EOF
+fi
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-calico.txt
     ${REGISTRY}/rancher/mirrored-calico-operator:v1.29.0
@@ -61,6 +65,7 @@ EOF
 
 if [ "${GOARCH}" != "arm64" ]; then
 xargs -n1 -t docker image pull --quiet << EOF > build/images-vsphere.txt
+    ${REGISTRY}/rancher/mirrored-cilium-cilium-etcd-operator:v2.0.7
     ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-cpi-release-manager:v1.25.0
     ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-driver:v2.7.0
     ${REGISTRY}/rancher/mirrored-cloud-provider-vsphere-csi-release-syncer:v2.7.0
@@ -74,12 +79,12 @@ fi
 
 xargs -n1 -t docker image pull --quiet << EOF > build/images-multus.txt
     ${REGISTRY}/${REPO}/hardened-multus-cni:v3.9.3-build20230504
-    ${REGISTRY}/${REPO}/hardened-cni-plugins:v1.0.1-build20230504
+    ${REGISTRY}/${REPO}/hardened-cni-plugins:v1.0.1-build20230503
     ${REGISTRY}/${REPO}/hardened-sriov-network-operator:v1.2.0-build20230504
     ${REGISTRY}/${REPO}/hardened-sriov-network-config-daemon:v1.2.0-build20230504
     ${REGISTRY}/${REPO}/hardened-sriov-network-device-plugin:v3.5.1-build20230504
     ${REGISTRY}/${REPO}/hardened-sriov-cni:v2.6.3-build20230504
-    ${REGISTRY}/${REPO}/hardened-ib-sriov-cni:v1.0.2-build220230504
+    ${REGISTRY}/${REPO}/hardened-ib-sriov-cni:v1.0.2-build20230504
     ${REGISTRY}/${REPO}/hardened-sriov-network-resources-injector:v1.5-build20230504
     ${REGISTRY}/${REPO}/hardened-sriov-network-webhook:v1.2.0-build20230504
     ${REGISTRY}/${REPO}/hardened-whereabouts:v0.6.1-build20230504

@@ -61,4 +61,4 @@ if [ -n "$DIRTY" ]; then
     exit 1
 fi
 
-check_win_binaries
+[ "${GOARCH}" != "arm64" ] && check_win_binaries
