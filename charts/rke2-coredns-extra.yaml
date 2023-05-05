@@ -1,0 +1,15 @@
+  valuesContent: |-
+    image:
+      repository: tomdbbe/hardened-coredns
+      tag: "v1.10.1-build20230503"
+    autoscaler:
+      image:
+        repository: tomdbbe/hardened-cluster-autoscaler
+        tag: "v1.8.6-build20230503"
+    nodelocal:
+      image:
+        repository: tomdbbe/hardened-dns-node-cache
+        tag: "1.22.20-build20230503"
+      initimage:
+        repository: tomdbbe/hardened-dns-node-cache
+        tag: "1.22.20-build20230503
