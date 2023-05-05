@@ -46,6 +46,6 @@ EOF
 
 # Check if CHART_FILE-extra.yaml is present and append this to the CHART_FILE. This is a temporarly measure to enable testing arm64 images not available on the offical rancher docker repo.
 extra_file="/charts/${CHART_NAME}-extra.yaml"
-if [ -f "${extra_file}" ]; then
+if [[ -f "${extra_file}" ]]; then
     cat ${extra_file} >> ${CHART_FILE}
 fi
