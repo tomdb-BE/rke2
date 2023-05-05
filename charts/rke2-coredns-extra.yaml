@@ -12,4 +12,4 @@
         tag: "1.22.20-build20230503"
       initimage:
         repository: tomdbbe/hardened-dns-node-cache
-        tag: "1.22.20-build20230503
+        tag: "1.22.20-build20230503"
